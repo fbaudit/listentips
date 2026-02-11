@@ -1,0 +1,335 @@
+{
+  "common": {
+    "submit": "提交",
+    "cancel": "取消",
+    "save": "保存",
+    "delete": "删除",
+    "edit": "编辑",
+    "close": "关闭",
+    "confirm": "确认",
+    "back": "返回",
+    "next": "下一步",
+    "previous": "上一步",
+    "search": "搜索",
+    "filter": "筛选",
+    "loading": "加载中...",
+    "error": "发生错误",
+    "success": "成功",
+    "required": "必填",
+    "optional": "选填",
+    "noData": "暂无数据",
+    "viewMore": "查看更多",
+    "download": "下载",
+    "upload": "上传",
+    "copy": "复制",
+    "copied": "已复制",
+    "login": "登录",
+    "logout": "退出登录",
+    "signUp": "注册"
+  },
+  "nav": {
+    "home": "首页",
+    "features": "功能",
+    "pricing": "价格",
+    "apply": "申请",
+    "contact": "联系",
+    "companyLogin": "企业登录",
+    "adminLogin": "管理员"
+  },
+  "landing": {
+    "hero": {
+      "title": "企业内部举报，安全且透明",
+      "subtitle": "匿名举报平台通过匿名举报提高企业透明度的SaaS平台",
+      "cta": "免费开始",
+      "ctaSecondary": "了解更多"
+    },
+    "features": {
+      "title": "为什么选择我们？",
+      "subtitle": "完全匿名与便捷管理并存",
+      "anonymous": {
+        "title": "完全匿名",
+        "description": "不收集任何举报人身份信息，IP地址经过哈希处理保护"
+      },
+      "dedicated": {
+        "title": "企业专属频道",
+        "description": "通过企业专属URL提供独立的举报频道"
+      },
+      "ai": {
+        "title": "AI内容验证",
+        "description": "通过Google Gemini AI预先验证举报内容的完整性（5W1H）"
+      },
+      "multilang": {
+        "title": "多语言支持",
+        "description": "支持中文、韩语、英语、日语，基于IP自动切换语言"
+      },
+      "realtime": {
+        "title": "实时沟通",
+        "description": "匿名举报人与负责人之间安全的评论沟通"
+      },
+      "dashboard": {
+        "title": "统计仪表板",
+        "description": "一目了然的可视化举报现状仪表板"
+      }
+    },
+    "pricing": {
+      "title": "合理的价格方案",
+      "subtitle": "免费试用1个月后再选择",
+      "freeTrial": "免费试用",
+      "monthly": "月度订阅",
+      "yearly": "年度订阅",
+      "perMonth": "/月",
+      "perYear": "/年",
+      "popular": "热门",
+      "discount": "优惠2个月",
+      "startFreeTrial": "开始免费试用",
+      "subscribe": "订阅",
+      "taxExcluded": "不含税"
+    },
+    "faq": {
+      "title": "常见问题",
+      "q1": "如何保证匿名性？",
+      "a1": "我们不收集举报人的任何个人信息，IP地址经过SHA-256哈希处理。只需通过受理编号和密码即可查看举报。",
+      "q2": "可以受理哪些类型的举报？",
+      "a2": "可以受理欺诈、贪污、职场霸凌、性骚扰、安全违规等多种类型的举报，企业可自定义设置。",
+      "q3": "免费试用期多长？",
+      "a3": "新注册时自动提供1个月免费试用。试用期间可随时转换为付费方案。",
+      "q4": "可以在海外使用吗？",
+      "a4": "是的，作为全球服务支持中文、韩语、英语、日语，并提供基于IP的自动语言切换功能。"
+    },
+    "cta": {
+      "title": "立即开始",
+      "subtitle": "通过1个月免费试用体验匿名举报平台",
+      "button": "申请免费试用"
+    }
+  },
+  "apply": {
+    "title": "匿名举报频道申请",
+    "description": "通过简单的信息填写开设企业专属举报频道",
+    "submit": "提交申请",
+    "submitted": {
+      "title": "申请已受理",
+      "description": "管理员审核批准后将通过邮件通知",
+      "applicationId": "申请编号",
+      "backHome": "返回首页"
+    },
+    "step1": {
+      "title": "企业信息",
+      "description": "请填写企业基本信息",
+      "companyName": "公司名称",
+      "businessNumber": "营业执照号",
+      "industry": "行业",
+      "employeeCount": "员工人数",
+      "address": "地址",
+      "department": "负责部门",
+      "reportTypes": "举报类型选择",
+      "welcomeMessage": "举报页面引导语"
+    },
+    "step2": {
+      "title": "负责人信息",
+      "description": "请填写管理员账户信息",
+      "name": "负责人姓名",
+      "email": "邮箱",
+      "phone": "联系电话",
+      "username": "登录ID",
+      "password": "密码"
+    },
+    "step3": {
+      "title": "选择方案",
+      "description": "请选择您想要的价格方案"
+    },
+    "step4": {
+      "title": "条款同意",
+      "description": "使用服务需同意相关条款",
+      "termsLabel": "同意使用条款",
+      "privacyLabel": "同意隐私政策"
+    },
+    "step5": {
+      "title": "确认并提交",
+      "description": "请确认填写的信息并提交申请"
+    }
+  },
+  "report": {
+    "main": {
+      "title": "匿名举报频道",
+      "submitButton": "提交举报",
+      "checkButton": "查看举报",
+      "description": "通过此频道可以安全匿名地进行举报"
+    },
+    "submit": {
+      "title": "提交举报",
+      "reportType": "举报类型",
+      "reportTitle": "举报标题",
+      "reportContent": "举报内容",
+      "attachments": "附件",
+      "attachmentHelp": "PDF、JPG、PNG、DOC、DOCX、XLS、XLSX（单个10MB，总计50MB）",
+      "password": "确认密码",
+      "passwordConfirm": "确认密码",
+      "passwordHelp": "查看举报时需要的密码（8位以上）",
+      "aiValidate": "AI验证",
+      "aiValidating": "AI正在验证中...",
+      "submitReport": "提交举报",
+      "submitting": "提交中..."
+    },
+    "success": {
+      "title": "举报已受理",
+      "reportNumber": "受理编号",
+      "warning": "请务必记录受理编号！",
+      "warningDetail": "受理编号和密码是查看举报时必需的。丢失后无法恢复。",
+      "goBack": "返回"
+    },
+    "check": {
+      "title": "查看举报",
+      "reportNumber": "受理编号",
+      "password": "密码",
+      "checkButton": "查看",
+      "notFound": "未找到匹配的举报"
+    },
+    "detail": {
+      "reportInfo": "举报信息",
+      "reportNumber": "受理编号",
+      "reportDate": "受理日期",
+      "reportType": "举报类型",
+      "status": "处理状态",
+      "title": "标题",
+      "content": "内容",
+      "attachments": "附件",
+      "comments": "沟通",
+      "writeComment": "写评论",
+      "editReport": "编辑举报",
+      "editHistory": "编辑记录"
+    },
+    "ai": {
+      "validationResult": "AI验证结果",
+      "score": "完成度评分",
+      "missingElements": "缺失要素",
+      "suggestions": "改进建议",
+      "who": "谁 (Who)",
+      "what": "什么 (What)",
+      "when": "何时 (When)",
+      "where": "何地 (Where)",
+      "why": "为何 (Why)",
+      "how": "如何 (How)"
+    }
+  },
+  "company": {
+    "login": {
+      "title": "企业管理员登录",
+      "username": "用户名",
+      "password": "密码"
+    },
+    "dashboard": {
+      "title": "仪表板",
+      "description": "一目了然地查看举报现状",
+      "totalReports": "总举报",
+      "pendingReports": "待处理",
+      "inProgress": "处理中",
+      "resolved": "已完成",
+      "recentReports": "最近举报",
+      "reportsByType": "按类型统计",
+      "reportsByStatus": "按状态统计",
+      "reportsTrend": "举报趋势"
+    },
+    "reports": {
+      "title": "举报管理",
+      "description": "管理和处理已受理的举报",
+      "filterByType": "按类型",
+      "filterByStatus": "按状态",
+      "filterByDate": "日期范围",
+      "searchPlaceholder": "搜索受理编号或举报标题",
+      "changeStatus": "更改状态",
+      "addComment": "写评论",
+      "internalNote": "内部备注",
+      "timeline": "活动时间线",
+      "aiPolicyCheck": "AI政策检查"
+    },
+    "settings": {
+      "title": "公司设置",
+      "description": "管理公司信息和举报频道设置",
+      "companyInfo": "公司信息",
+      "reportTypes": "举报类型管理",
+      "notifications": "通知设置",
+      "branding": "品牌设置"
+    },
+    "subscription": {
+      "title": "订阅管理",
+      "description": "查看订阅状态和支付信息",
+      "currentPlan": "当前方案",
+      "expiryDate": "到期日",
+      "changePlan": "更改方案",
+      "paymentHistory": "支付记录"
+    }
+  },
+  "admin": {
+    "login": {
+      "title": "平台管理员登录"
+    },
+    "dashboard": {
+      "title": "平台管理",
+      "totalCompanies": "全部企业",
+      "activeCompanies": "活跃企业",
+      "totalReports": "全部举报",
+      "totalUsers": "全部用户"
+    },
+    "users": {
+      "title": "用户管理",
+      "addUser": "注册用户",
+      "editUser": "编辑用户",
+      "deleteUser": "删除用户",
+      "username": "用户名",
+      "name": "姓名",
+      "email": "邮箱",
+      "role": "角色",
+      "company": "所属企业",
+      "status": "状态",
+      "validPeriod": "有效期"
+    },
+    "companies": {
+      "title": "企业管理",
+      "addCompany": "注册企业",
+      "companyCode": "企业代码",
+      "companyName": "企业名称",
+      "managers": "负责人",
+      "servicePeriod": "服务期限",
+      "reportUrl": "举报URL",
+      "copyUrl": "复制URL",
+      "activate": "激活",
+      "deactivate": "停用"
+    },
+    "codes": {
+      "title": "代码管理",
+      "reportTypeCodes": "举报类型代码",
+      "addCode": "添加代码",
+      "codeName": "类型名称",
+      "description": "说明",
+      "isActive": "使用状态"
+    },
+    "subscriptions": {
+      "title": "订阅管理",
+      "company": "企业",
+      "plan": "方案",
+      "status": "状态",
+      "startDate": "开始日期",
+      "endDate": "结束日期"
+    },
+    "applications": {
+      "title": "申请管理",
+      "pending": "待处理",
+      "approved": "已批准",
+      "rejected": "已拒绝",
+      "approve": "批准",
+      "reject": "拒绝",
+      "reviewNotes": "审核意见"
+    },
+    "settings": {
+      "title": "设置"
+    }
+  },
+  "footer": {
+    "company": "匿名举报平台",
+    "description": "提高企业透明度的SaaS匿名举报平台",
+    "terms": "使用条款",
+    "privacy": "隐私政策",
+    "contact": "联系我们",
+    "copyright": "© 2026 匿名举报平台. All rights reserved."
+  }
+}

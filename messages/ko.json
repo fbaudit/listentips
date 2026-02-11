@@ -1,0 +1,335 @@
+{
+  "common": {
+    "submit": "제출",
+    "cancel": "취소",
+    "save": "저장",
+    "delete": "삭제",
+    "edit": "수정",
+    "close": "닫기",
+    "confirm": "확인",
+    "back": "뒤로",
+    "next": "다음",
+    "previous": "이전",
+    "search": "검색",
+    "filter": "필터",
+    "loading": "로딩 중...",
+    "error": "오류가 발생했습니다",
+    "success": "성공",
+    "required": "필수",
+    "optional": "선택",
+    "noData": "데이터가 없습니다",
+    "viewMore": "더보기",
+    "download": "다운로드",
+    "upload": "업로드",
+    "copy": "복사",
+    "copied": "복사됨",
+    "login": "로그인",
+    "logout": "로그아웃",
+    "signUp": "가입하기"
+  },
+  "nav": {
+    "home": "홈",
+    "features": "기능",
+    "pricing": "요금제",
+    "apply": "신청하기",
+    "contact": "문의",
+    "companyLogin": "기업 로그인",
+    "adminLogin": "관리자"
+  },
+  "landing": {
+    "hero": {
+      "title": "기업 내부 신고, 안전하고 투명하게",
+      "subtitle": "모두의 제보채널은 익명 제보를 통해 기업의 투명성을 높이는 SaaS 플랫폼입니다",
+      "cta": "무료로 시작하기",
+      "ctaSecondary": "자세히 알아보기"
+    },
+    "features": {
+      "title": "왜 모두의 제보채널인가?",
+      "subtitle": "완전한 익명성과 편리한 관리를 동시에",
+      "anonymous": {
+        "title": "완전한 익명성",
+        "description": "제보자의 신원 정보를 일절 수집하지 않으며, IP 주소도 해시 처리하여 보호합니다"
+      },
+      "dedicated": {
+        "title": "기업 전용 채널",
+        "description": "기업별 고유 URL을 통해 독립된 제보채널을 제공합니다"
+      },
+      "ai": {
+        "title": "AI 콘텐츠 검증",
+        "description": "Google Gemini AI로 제보 내용의 완성도(6하원칙)를 사전 검증합니다"
+      },
+      "multilang": {
+        "title": "다국어 지원",
+        "description": "한국어, 영어, 일본어, 중국어를 지원하며 IP 기반 자동 언어 전환"
+      },
+      "realtime": {
+        "title": "실시간 커뮤니케이션",
+        "description": "익명 제보자와 담당자 간 안전한 댓글 기반 소통"
+      },
+      "dashboard": {
+        "title": "통계 대시보드",
+        "description": "제보 현황을 한눈에 파악하는 시각화된 대시보드"
+      }
+    },
+    "pricing": {
+      "title": "합리적인 요금제",
+      "subtitle": "1개월 무료 체험 후 선택하세요",
+      "freeTrial": "무료 체험",
+      "monthly": "월간 구독",
+      "yearly": "연간 구독",
+      "perMonth": "/월",
+      "perYear": "/년",
+      "popular": "인기",
+      "discount": "2개월 할인",
+      "startFreeTrial": "무료 체험 시작",
+      "subscribe": "구독하기",
+      "taxExcluded": "부가세 별도"
+    },
+    "faq": {
+      "title": "자주 묻는 질문",
+      "q1": "익명성은 어떻게 보장되나요?",
+      "a1": "제보자의 개인정보를 일절 수집하지 않으며, IP 주소는 SHA-256 해시 처리됩니다. 접수번호와 비밀번호만으로 제보를 확인할 수 있습니다.",
+      "q2": "어떤 종류의 제보를 접수할 수 있나요?",
+      "a2": "부정행위, 횡령, 직장 내 괴롭힘, 성희롱, 안전 위반 등 다양한 유형의 제보를 접수할 수 있으며, 기업별로 맞춤 설정이 가능합니다.",
+      "q3": "무료 체험 기간은 얼마인가요?",
+      "a3": "신규 가입 시 1개월 무료 체험이 자동으로 제공됩니다. 체험 기간 중 언제든지 유료 플랜으로 전환할 수 있습니다.",
+      "q4": "해외에서도 사용할 수 있나요?",
+      "a4": "네, 글로벌 서비스로 한국어, 영어, 일본어, 중국어를 지원하며, IP 기반 자동 언어 전환 기능을 제공합니다."
+    },
+    "cta": {
+      "title": "지금 바로 시작하세요",
+      "subtitle": "1개월 무료 체험으로 모두의 제보채널을 경험해보세요",
+      "button": "무료 체험 신청"
+    }
+  },
+  "apply": {
+    "title": "익명 제보채널 신청",
+    "description": "간단한 정보 입력으로 기업 전용 제보채널을 개설하세요",
+    "submit": "신청하기",
+    "submitted": {
+      "title": "신청이 접수되었습니다",
+      "description": "관리자 검토 후 승인되면 이메일로 안내해 드립니다",
+      "applicationId": "신청번호",
+      "backHome": "홈으로 돌아가기"
+    },
+    "step1": {
+      "title": "기업 정보",
+      "description": "기업의 기본 정보를 입력해주세요",
+      "companyName": "회사명",
+      "businessNumber": "사업자등록번호",
+      "industry": "업종",
+      "employeeCount": "직원 수",
+      "address": "주소",
+      "department": "담당 부서",
+      "reportTypes": "제보 유형 선택",
+      "welcomeMessage": "제보 페이지 안내 문구"
+    },
+    "step2": {
+      "title": "담당자 정보",
+      "description": "관리자 계정으로 사용할 정보를 입력해주세요",
+      "name": "담당자 이름",
+      "email": "이메일",
+      "phone": "연락처",
+      "username": "로그인 ID",
+      "password": "비밀번호"
+    },
+    "step3": {
+      "title": "요금제 선택",
+      "description": "원하시는 요금제를 선택해주세요"
+    },
+    "step4": {
+      "title": "약관 동의",
+      "description": "서비스 이용을 위해 약관에 동의해주세요",
+      "termsLabel": "이용약관 동의",
+      "privacyLabel": "개인정보 처리방침 동의"
+    },
+    "step5": {
+      "title": "확인 및 제출",
+      "description": "입력한 정보를 확인하고 신청해주세요"
+    }
+  },
+  "report": {
+    "main": {
+      "title": "익명 제보 채널",
+      "submitButton": "제보하기",
+      "checkButton": "제보 확인하기",
+      "description": "이 채널을 통해 안전하게 익명으로 제보할 수 있습니다"
+    },
+    "submit": {
+      "title": "제보 접수",
+      "reportType": "제보 유형",
+      "reportTitle": "제보 제목",
+      "reportContent": "제보 내용",
+      "attachments": "첨부파일",
+      "attachmentHelp": "PDF, JPG, PNG, DOC, DOCX, XLS, XLSX (개별 10MB, 총 50MB)",
+      "password": "확인 비밀번호",
+      "passwordConfirm": "비밀번호 확인",
+      "passwordHelp": "제보 확인 시 필요한 비밀번호입니다 (8자리 이상)",
+      "aiValidate": "AI 검증",
+      "aiValidating": "AI가 검증 중입니다...",
+      "submitReport": "제보 제출",
+      "submitting": "제출 중..."
+    },
+    "success": {
+      "title": "제보가 접수되었습니다",
+      "reportNumber": "접수번호",
+      "warning": "접수번호를 반드시 기록해 주세요!",
+      "warningDetail": "접수번호와 비밀번호는 제보 확인 시 필요합니다. 분실 시 복구할 수 없습니다.",
+      "goBack": "돌아가기"
+    },
+    "check": {
+      "title": "제보 확인",
+      "reportNumber": "접수번호",
+      "password": "비밀번호",
+      "checkButton": "확인하기",
+      "notFound": "일치하는 제보를 찾을 수 없습니다"
+    },
+    "detail": {
+      "reportInfo": "제보 정보",
+      "reportNumber": "접수번호",
+      "reportDate": "접수일시",
+      "reportType": "제보 유형",
+      "status": "처리 상태",
+      "title": "제목",
+      "content": "내용",
+      "attachments": "첨부파일",
+      "comments": "커뮤니케이션",
+      "writeComment": "댓글 작성",
+      "editReport": "제보 수정",
+      "editHistory": "수정 이력"
+    },
+    "ai": {
+      "validationResult": "AI 검증 결과",
+      "score": "완성도 점수",
+      "missingElements": "누락된 요소",
+      "suggestions": "개선 제안",
+      "who": "누가 (Who)",
+      "what": "무엇을 (What)",
+      "when": "언제 (When)",
+      "where": "어디서 (Where)",
+      "why": "왜 (Why)",
+      "how": "어떻게 (How)"
+    }
+  },
+  "company": {
+    "login": {
+      "title": "기업 관리자 로그인",
+      "username": "아이디",
+      "password": "비밀번호"
+    },
+    "dashboard": {
+      "title": "대시보드",
+      "description": "제보 현황을 한눈에 확인하세요",
+      "totalReports": "총 제보",
+      "pendingReports": "대기 중",
+      "inProgress": "처리 중",
+      "resolved": "완료",
+      "recentReports": "최근 제보",
+      "reportsByType": "유형별 제보",
+      "reportsByStatus": "상태별 제보",
+      "reportsTrend": "제보 추이"
+    },
+    "reports": {
+      "title": "제보 관리",
+      "description": "접수된 제보를 관리하고 처리하세요",
+      "filterByType": "유형별",
+      "filterByStatus": "상태별",
+      "filterByDate": "날짜 범위",
+      "searchPlaceholder": "접수번호 또는 제보명 검색",
+      "changeStatus": "상태 변경",
+      "addComment": "댓글 작성",
+      "internalNote": "내부 메모",
+      "timeline": "활동 타임라인",
+      "aiPolicyCheck": "AI 정책 검증"
+    },
+    "settings": {
+      "title": "회사 설정",
+      "description": "회사 정보 및 제보채널 설정을 관리하세요",
+      "companyInfo": "회사 정보",
+      "reportTypes": "제보 유형 관리",
+      "notifications": "알림 설정",
+      "branding": "브랜딩"
+    },
+    "subscription": {
+      "title": "구독 관리",
+      "description": "구독 상태와 결제 정보를 확인하세요",
+      "currentPlan": "현재 플랜",
+      "expiryDate": "만료일",
+      "changePlan": "플랜 변경",
+      "paymentHistory": "결제 내역"
+    }
+  },
+  "admin": {
+    "login": {
+      "title": "플랫폼 관리자 로그인"
+    },
+    "dashboard": {
+      "title": "플랫폼 관리",
+      "totalCompanies": "전체 기업",
+      "activeCompanies": "활성 기업",
+      "totalReports": "전체 제보",
+      "totalUsers": "전체 사용자"
+    },
+    "users": {
+      "title": "사용자 관리",
+      "addUser": "사용자 등록",
+      "editUser": "사용자 수정",
+      "deleteUser": "사용자 삭제",
+      "username": "아이디",
+      "name": "이름",
+      "email": "이메일",
+      "role": "역할",
+      "company": "소속 기업",
+      "status": "상태",
+      "validPeriod": "유효 기간"
+    },
+    "companies": {
+      "title": "기업 관리",
+      "addCompany": "기업 등록",
+      "companyCode": "기업 코드",
+      "companyName": "기업명",
+      "managers": "담당자",
+      "servicePeriod": "서비스 기간",
+      "reportUrl": "제보 URL",
+      "copyUrl": "URL 복사",
+      "activate": "활성화",
+      "deactivate": "비활성화"
+    },
+    "codes": {
+      "title": "코드 관리",
+      "reportTypeCodes": "제보 유형 코드",
+      "addCode": "코드 추가",
+      "codeName": "유형명",
+      "description": "설명",
+      "isActive": "사용 여부"
+    },
+    "subscriptions": {
+      "title": "구독 관리",
+      "company": "기업",
+      "plan": "요금제",
+      "status": "상태",
+      "startDate": "시작일",
+      "endDate": "종료일"
+    },
+    "applications": {
+      "title": "신청 관리",
+      "pending": "대기 중",
+      "approved": "승인됨",
+      "rejected": "거절됨",
+      "approve": "승인",
+      "reject": "거절",
+      "reviewNotes": "검토 의견"
+    },
+    "settings": {
+      "title": "설정"
+    }
+  },
+  "footer": {
+    "company": "모두의 제보채널",
+    "description": "기업의 투명성을 높이는 SaaS 익명 제보 플랫폼",
+    "terms": "이용약관",
+    "privacy": "개인정보 처리방침",
+    "contact": "문의하기",
+    "copyright": "© 2026 모두의 제보채널. All rights reserved."
+  }
+}

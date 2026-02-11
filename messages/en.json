@@ -1,0 +1,327 @@
+{
+  "common": {
+    "submit": "Submit",
+    "cancel": "Cancel",
+    "save": "Save",
+    "delete": "Delete",
+    "edit": "Edit",
+    "close": "Close",
+    "confirm": "Confirm",
+    "back": "Back",
+    "next": "Next",
+    "previous": "Previous",
+    "search": "Search",
+    "filter": "Filter",
+    "loading": "Loading...",
+    "error": "An error occurred",
+    "success": "Success",
+    "required": "Required",
+    "optional": "Optional",
+    "noData": "No data",
+    "viewMore": "View more",
+    "download": "Download",
+    "upload": "Upload",
+    "copy": "Copy",
+    "copied": "Copied",
+    "login": "Login",
+    "logout": "Logout",
+    "signUp": "Sign up"
+  },
+  "nav": {
+    "home": "Home",
+    "features": "Features",
+    "pricing": "Pricing",
+    "apply": "Apply",
+    "contact": "Contact",
+    "companyLogin": "Company Login",
+    "adminLogin": "Admin"
+  },
+  "landing": {
+    "hero": {
+      "title": "Safe and Transparent Internal Reporting",
+      "subtitle": "An anonymous whistleblowing SaaS platform that enhances organizational transparency",
+      "cta": "Start Free Trial",
+      "ctaSecondary": "Learn More"
+    },
+    "features": {
+      "title": "Why Choose Us?",
+      "subtitle": "Complete anonymity with convenient management",
+      "anonymous": {
+        "title": "Complete Anonymity",
+        "description": "No personal information collected. IP addresses are hashed for protection"
+      },
+      "dedicated": {
+        "title": "Dedicated Channels",
+        "description": "Each organization gets a unique URL for their independent reporting channel"
+      },
+      "ai": {
+        "title": "AI Content Validation",
+        "description": "Google Gemini AI validates report completeness using the 5W1H framework"
+      },
+      "multilang": {
+        "title": "Multi-language Support",
+        "description": "Supports Korean, English, Japanese, and Chinese with automatic IP-based switching"
+      },
+      "realtime": {
+        "title": "Real-time Communication",
+        "description": "Secure comment-based communication between reporters and administrators"
+      },
+      "dashboard": {
+        "title": "Analytics Dashboard",
+        "description": "Visualized dashboard to monitor report status at a glance"
+      }
+    },
+    "pricing": {
+      "title": "Simple Pricing",
+      "subtitle": "Try free for 1 month, then choose your plan",
+      "freeTrial": "Free Trial",
+      "monthly": "Monthly",
+      "yearly": "Yearly",
+      "perMonth": "/mo",
+      "perYear": "/yr",
+      "popular": "Popular",
+      "discount": "2 months free",
+      "startFreeTrial": "Start Free Trial",
+      "subscribe": "Subscribe",
+      "taxExcluded": "Tax excluded"
+    },
+    "faq": {
+      "title": "Frequently Asked Questions",
+      "q1": "How is anonymity guaranteed?",
+      "a1": "We do not collect any personal information. IP addresses are processed with SHA-256 hashing. Reports can only be checked using the report number and password.",
+      "q2": "What types of reports can be submitted?",
+      "a2": "Various types including fraud, embezzlement, workplace harassment, sexual harassment, safety violations, and more. Each organization can customize their report types.",
+      "q3": "How long is the free trial?",
+      "a3": "A 1-month free trial is automatically provided upon registration. You can switch to a paid plan at any time during the trial.",
+      "q4": "Can it be used internationally?",
+      "a4": "Yes, we support Korean, English, Japanese, and Chinese with automatic IP-based language detection."
+    },
+    "cta": {
+      "title": "Get Started Today",
+      "subtitle": "Experience our platform with a free 1-month trial",
+      "button": "Start Free Trial"
+    }
+  },
+  "apply": {
+    "title": "Apply for Anonymous Reporting Channel",
+    "subtitle": "Set up your organization's dedicated reporting channel with simple information",
+    "step1": {
+      "title": "Company Information",
+      "companyName": "Company Name",
+      "businessNumber": "Business Registration Number",
+      "industry": "Industry",
+      "employeeCount": "Number of Employees",
+      "address": "Address",
+      "department": "Department",
+      "reportTypes": "Report Types",
+      "welcomeMessage": "Welcome Message",
+      "locale": "Language",
+      "aiValidation": "Use AI Report Validation",
+      "chatbot": "Use Chatbot"
+    },
+    "step2": {
+      "title": "Administrator Information",
+      "adminName": "Name",
+      "adminEmail": "Email",
+      "adminPhone": "Phone",
+      "adminUsername": "Login ID",
+      "adminPassword": "Password",
+      "emailVerification": "Email Verification"
+    },
+    "step3": {
+      "title": "Select Plan",
+      "selectPlan": "Choose your preferred plan"
+    },
+    "step4": {
+      "title": "Terms Agreement",
+      "termsAgreement": "I agree to the Terms of Service",
+      "privacyAgreement": "I agree to the Privacy Policy"
+    },
+    "step5": {
+      "title": "Application Complete",
+      "successMessage": "Your application has been submitted",
+      "reviewMessage": "We will notify you by email once approved",
+      "goHome": "Return to Home"
+    }
+  },
+  "report": {
+    "main": {
+      "title": "Anonymous Reporting Channel",
+      "submitButton": "Submit Report",
+      "checkButton": "Check Report Status",
+      "description": "You can safely submit an anonymous report through this channel"
+    },
+    "submit": {
+      "title": "Submit Report",
+      "reportType": "Report Type",
+      "reportTitle": "Title",
+      "reportContent": "Content",
+      "attachments": "Attachments",
+      "attachmentHelp": "PDF, JPG, PNG, DOC, DOCX, XLS, XLSX (10MB each, 50MB total)",
+      "password": "Verification Password",
+      "passwordConfirm": "Confirm Password",
+      "passwordHelp": "This password is needed to check your report later (min 8 characters)",
+      "aiValidate": "AI Validate",
+      "aiValidating": "AI is validating...",
+      "submitReport": "Submit Report",
+      "submitting": "Submitting..."
+    },
+    "success": {
+      "title": "Report Submitted Successfully",
+      "reportNumber": "Report Number",
+      "warning": "Please save your report number!",
+      "warningDetail": "You need both the report number and password to check your report. They cannot be recovered if lost.",
+      "goBack": "Go Back"
+    },
+    "check": {
+      "title": "Check Report",
+      "reportNumber": "Report Number",
+      "password": "Password",
+      "checkButton": "Check",
+      "notFound": "No matching report found"
+    },
+    "detail": {
+      "reportInfo": "Report Information",
+      "reportNumber": "Report Number",
+      "reportDate": "Date Submitted",
+      "reportType": "Report Type",
+      "status": "Status",
+      "title": "Title",
+      "content": "Content",
+      "attachments": "Attachments",
+      "comments": "Communication",
+      "writeComment": "Write Comment",
+      "editReport": "Edit Report",
+      "editHistory": "Edit History"
+    },
+    "ai": {
+      "validationResult": "AI Validation Result",
+      "score": "Completeness Score",
+      "missingElements": "Missing Elements",
+      "suggestions": "Suggestions",
+      "who": "Who",
+      "what": "What",
+      "when": "When",
+      "where": "Where",
+      "why": "Why",
+      "how": "How"
+    }
+  },
+  "company": {
+    "login": {
+      "title": "Company Admin Login",
+      "username": "Username",
+      "password": "Password"
+    },
+    "dashboard": {
+      "title": "Dashboard",
+      "totalReports": "Total Reports",
+      "pendingReports": "Pending",
+      "inProgress": "In Progress",
+      "resolved": "Resolved",
+      "recentReports": "Recent Reports",
+      "reportsByType": "Reports by Type",
+      "reportsByStatus": "Reports by Status",
+      "reportsTrend": "Reports Trend"
+    },
+    "reports": {
+      "title": "Report Management",
+      "filterByType": "By Type",
+      "filterByStatus": "By Status",
+      "filterByDate": "Date Range",
+      "searchPlaceholder": "Search by report number or title",
+      "changeStatus": "Change Status",
+      "addComment": "Add Comment",
+      "internalNote": "Internal Note",
+      "timeline": "Activity Timeline",
+      "aiPolicyCheck": "AI Policy Check"
+    },
+    "settings": {
+      "title": "Company Settings",
+      "companyInfo": "Company Information",
+      "reportTypes": "Report Types",
+      "notifications": "Notifications",
+      "branding": "Branding"
+    },
+    "subscription": {
+      "title": "Subscription",
+      "currentPlan": "Current Plan",
+      "expiryDate": "Expiry Date",
+      "changePlan": "Change Plan",
+      "paymentHistory": "Payment History"
+    }
+  },
+  "admin": {
+    "login": {
+      "title": "Platform Admin Login"
+    },
+    "dashboard": {
+      "title": "Platform Management",
+      "totalCompanies": "Total Companies",
+      "activeCompanies": "Active Companies",
+      "totalReports": "Total Reports",
+      "totalUsers": "Total Users"
+    },
+    "users": {
+      "title": "User Management",
+      "addUser": "Add User",
+      "editUser": "Edit User",
+      "deleteUser": "Delete User",
+      "username": "Username",
+      "name": "Name",
+      "email": "Email",
+      "role": "Role",
+      "company": "Company",
+      "status": "Status",
+      "validPeriod": "Valid Period"
+    },
+    "companies": {
+      "title": "Company Management",
+      "addCompany": "Add Company",
+      "companyCode": "Company Code",
+      "companyName": "Company Name",
+      "managers": "Managers",
+      "servicePeriod": "Service Period",
+      "reportUrl": "Report URL",
+      "copyUrl": "Copy URL",
+      "activate": "Activate",
+      "deactivate": "Deactivate"
+    },
+    "codes": {
+      "title": "Code Management",
+      "reportTypeCodes": "Report Type Codes",
+      "addCode": "Add Code",
+      "codeName": "Type Name",
+      "description": "Description",
+      "isActive": "Active"
+    },
+    "subscriptions": {
+      "title": "Subscription Management",
+      "company": "Company",
+      "plan": "Plan",
+      "status": "Status",
+      "startDate": "Start Date",
+      "endDate": "End Date"
+    },
+    "applications": {
+      "title": "Application Management",
+      "pending": "Pending",
+      "approved": "Approved",
+      "rejected": "Rejected",
+      "approve": "Approve",
+      "reject": "Reject",
+      "reviewNotes": "Review Notes"
+    },
+    "settings": {
+      "title": "Settings"
+    }
+  },
+  "footer": {
+    "company": "Everyone's Report Channel",
+    "description": "Anonymous whistleblowing SaaS platform for organizational transparency",
+    "terms": "Terms of Service",
+    "privacy": "Privacy Policy",
+    "contact": "Contact Us",
+    "copyright": "© 2026 Everyone's Report Channel. All rights reserved."
+  }
+}
