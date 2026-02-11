@@ -6,10 +6,7 @@
     "dev": "next dev --port 9500",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint",
-    "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
-    "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
-    "pages:build": "opennextjs-cloudflare build"
+    "lint": "eslint"
   },
   "dependencies": {
     "@google/genai": "^1.40.0",
@@ -43,7 +40,6 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
-    "@opennextjs/cloudflare": "^1.16.4",
     "@tailwindcss/postcss": "^4",
     "@types/bcryptjs": "^2.4.6",
     "@types/node": "^20",
