@@ -8,6 +8,8 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Badge } from "@/components/ui/badge";
 import { Shield, Lock, Globe, BarChart3, MessageSquare, Bot, CheckCircle2, ArrowRight } from "lucide-react";
 import { PLANS } from "@/lib/constants/plans";
+import { MarketingHeader } from "@/components/layout/marketing-header";
+import { MarketingFooter } from "@/components/layout/marketing-footer";
 
 const FEATURES = [
   { icon: Shield, key: "anonymous" },
@@ -22,14 +24,16 @@ export default function LandingPage() {
   const t = useTranslations("landing");
 
   return (
-    <div className="flex flex-col">
+    <div className="flex flex-col min-h-screen">
+      <MarketingHeader />
+      <main className="flex-1">
       {/* Hero */}
       <section className="relative py-20 lg:py-32 text-center px-4">
         <div className="container max-w-4xl mx-auto space-y-6">
           <Badge variant="secondary" className="text-sm px-4 py-1">
             Trusted by 100+ organizations
           </Badge>
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight">
+          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight lg:whitespace-nowrap">
             {t("hero.title")}
           </h1>
           <p className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto">
@@ -41,9 +45,6 @@ export default function LandingPage() {
                 {t("hero.cta")}
                 <ArrowRight className="w-4 h-4 ml-2" />
               </Link>
-            </Button>
-            <Button asChild variant="outline" size="lg" className="text-base">
-              <Link href="#features">{t("hero.ctaSecondary")}</Link>
             </Button>
           </div>
         </div>
@@ -75,55 +76,60 @@ export default function LandingPage() {
       </section>
 
       {/* Pricing */}
-      <section className="py-16 px-4">
-        <div className="container max-w-5xl mx-auto">
+      <section className="py-16 px-4" id="pricing">
+        <div className="container max-w-7xl mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold">{t("pricing.title")}</h2>
             <p className="text-muted-foreground mt-2">{t("pricing.subtitle")}</p>
           </div>
-          <div className="grid gap-6 sm:grid-cols-3">
-            {Object.entries(PLANS).map(([key, plan]) => (
-              <Card
-                key={key}
-                className={key === "monthly" ? "border-primary shadow-md relative" : ""}
-              >
-                {key === "monthly" && (
-                  <Badge className="absolute -top-3 left-1/2 -translate-x-1/2">
-                    {t("pricing.popular")}
-                  </Badge>
-                )}
-                <CardHeader className="text-center">
-                  <CardTitle>{plan.name.ko}</CardTitle>
-                  <div className="text-3xl font-bold mt-2">
-                    {plan.price.KRW === 0
-                      ? t("pricing.freeTrial")
-                      : `₩${plan.price.KRW.toLocaleString()}`}
-                  </div>
-                  {key !== "free_trial" && (
-                    <p className="text-sm text-muted-foreground">
-                      {key === "monthly" ? t("pricing.perMonth") : t("pricing.perYear")}
-                    </p>
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+            {Object.entries(PLANS).map(([key, plan]) => {
+              const isMonthly = key === "monthly" || key === "premium_monthly";
+              const isYearly = key === "yearly" || key === "premium_yearly";
+              const isPremiumMonthly = key === "premium_monthly";
+              return (
+                <Card
+                  key={key}
+                  className={isPremiumMonthly ? "border-primary shadow-md relative" : ""}
+                >
+                  {isPremiumMonthly && (
+                    <Badge className="absolute -top-3 left-1/2 -translate-x-1/2">
+                      {t("pricing.popular")}
+                    </Badge>
                   )}
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <ul className="space-y-2">
-                    {plan.features.ko.map((feature, i) => (
-                      <li key={i} className="flex items-start gap-2 text-sm">
-                        <CheckCircle2 className="w-4 h-4 text-green-500 mt-0.5 shrink-0" />
-                        {feature}
-                      </li>
-                    ))}
-                  </ul>
-                  <Button
-                    asChild
-                    className="w-full"
-                    variant={key === "monthly" ? "default" : "outline"}
-                  >
-                    <Link href="/apply">{t("pricing.startFreeTrial")}</Link>
-                  </Button>
-                </CardContent>
-              </Card>
-            ))}
+                  <CardHeader className="text-center">
+                    <CardTitle className="text-lg">{plan.name.ko}</CardTitle>
+                    <div className="text-2xl font-bold mt-2">
+                      {plan.price.KRW === 0
+                        ? t("pricing.freeTrial")
+                        : `₩${plan.price.KRW.toLocaleString()}`}
+                    </div>
+                    {key !== "free_trial" && (
+                      <p className="text-sm text-muted-foreground">
+                        {isMonthly ? t("pricing.perMonth") : isYearly ? t("pricing.perYear") : ""}
+                      </p>
+                    )}
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <ul className="space-y-2">
+                      {plan.features.ko.map((feature, i) => (
+                        <li key={i} className="flex items-start gap-2 text-sm">
+                          <CheckCircle2 className="w-4 h-4 text-green-500 mt-0.5 shrink-0" />
+                          {feature}
+                        </li>
+                      ))}
+                    </ul>
+                    <Button
+                      asChild
+                      className="w-full"
+                      variant={isPremiumMonthly ? "default" : "outline"}
+                    >
+                      <Link href="/apply">{t("pricing.startFreeTrial")}</Link>
+                    </Button>
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
         </div>
       </section>
@@ -158,6 +164,8 @@ export default function LandingPage() {
           </Button>
         </div>
       </section>
+      </main>
+      <MarketingFooter />
     </div>
   );
 }

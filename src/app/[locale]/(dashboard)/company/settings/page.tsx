@@ -20,6 +20,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Loader2, Save, Plus, Pencil, Trash2, Bell, UserPlus, Copy, ExternalLink, Link2, GripVertical, X } from "lucide-react";
 import { toast } from "sonner";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
@@ -46,6 +53,8 @@ interface CompanySettings {
   primary_color: string;
   use_ai_validation: boolean;
   use_chatbot: boolean;
+  ai_provider: string | null;
+  ai_api_key_configured: boolean;
   preferred_locale: string;
   content_blocks: Array<{ id: string; content: string; order: number }>;
 }
@@ -143,6 +152,9 @@ export default function CompanySettingsPage() {
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
 
+  // AI API key input (local only, not stored in settings)
+  const [aiApiKey, setAiApiKey] = useState("");
+
   // Notification prefs state
   const [notifDialogOpen, setNotifDialogOpen] = useState(false);
   const [notifStaff, setNotifStaff] = useState<StaffMember | null>(null);
@@ -203,13 +215,21 @@ export default function CompanySettingsPage() {
     if (!settings) return;
     setSaving(true);
     try {
+      const payload: Record<string, unknown> = { ...settings };
+      if (aiApiKey.trim()) {
+        payload.ai_api_key = aiApiKey.trim();
+      }
       const res = await fetch("/api/company/settings", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(settings),
+        body: JSON.stringify(payload),
       });
       if (res.ok) {
         toast.success("설정이 저장되었습니다");
+        if (aiApiKey.trim()) {
+          setSettings((s) => s ? { ...s, ai_api_key_configured: true } : s);
+          setAiApiKey("");
+        }
       } else {
         toast.error("저장 중 오류가 발생했습니다");
       }
@@ -821,6 +841,53 @@ export default function CompanySettingsPage() {
                     onCheckedChange={(v) => setSettings((s) => s ? { ...s, use_chatbot: v } : s)}
                   />
                 </div>
+
+                {(settings.use_ai_validation || settings.use_chatbot) && (
+                  <div className="ml-4 pl-4 border-l-2 border-muted space-y-4">
+                    <div className="space-y-2">
+                      <Label>AI 제공자</Label>
+                      <Select
+                        value={settings.ai_provider || ""}
+                        onValueChange={(v) => setSettings((s) => s ? { ...s, ai_provider: v || null } : s)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="시스템 기본값 (Gemini)" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="gemini">Google Gemini</SelectItem>
+                          <SelectItem value="openai">OpenAI (GPT)</SelectItem>
+                          <SelectItem value="claude">Anthropic Claude</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-muted-foreground">설정하지 않으면 시스템 기본 설정(Gemini)을 사용합니다</p>
+                    </div>
+                    {settings.ai_provider && (
+                      <div className="space-y-2">
+                        <Label>API Key</Label>
+                        <div className="flex items-center gap-2">
+                          <Input
+                            type="password"
+                            value={aiApiKey}
+                            onChange={(e) => setAiApiKey(e.target.value)}
+                            placeholder={
+                              settings.ai_provider === "gemini" ? "AIza..."
+                                : settings.ai_provider === "openai" ? "sk-..."
+                                : "sk-ant-..."
+                            }
+                          />
+                          {settings.ai_api_key_configured && !aiApiKey && (
+                            <Badge variant="secondary">설정됨</Badge>
+                          )}
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          {settings.ai_api_key_configured
+                            ? "새 키를 입력하면 기존 키가 교체됩니다. 비워두면 기존 키가 유지됩니다."
+                            : "선택한 AI 제공자의 API 키를 입력하세요."}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 <Separator />
 

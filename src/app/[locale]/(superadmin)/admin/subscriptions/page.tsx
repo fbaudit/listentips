@@ -50,6 +50,8 @@ export default function AdminSubscriptionsPage() {
       case "free_trial": return "무료 체험";
       case "monthly": return "월간 구독";
       case "yearly": return "연간 구독";
+      case "premium_monthly": return "프리미엄 월간";
+      case "premium_yearly": return "프리미엄 연간";
       default: return plan;
     }
   };

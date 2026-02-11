@@ -105,13 +105,15 @@ export default function CompanySubscriptionPage() {
       )}
 
       {/* Plan Comparison */}
-      <div className="grid gap-6 sm:grid-cols-3">
+      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
         {Object.entries(PLANS).map(([key, plan]) => {
           const isCurrent = subscription?.plan_type === key;
+          const isMonthly = key === "monthly" || key === "premium_monthly";
+          const isYearly = key === "yearly" || key === "premium_yearly";
           return (
             <Card key={key} className={isCurrent ? "border-primary" : ""}>
               <CardHeader className="text-center">
-                <CardTitle>{plan.name.ko}</CardTitle>
+                <CardTitle className="text-lg">{plan.name.ko}</CardTitle>
                 <div className="text-2xl font-bold mt-2">
                   {plan.price.KRW === 0
                     ? "무료"
@@ -119,7 +121,7 @@ export default function CompanySubscriptionPage() {
                 </div>
                 {key !== "free_trial" && (
                   <p className="text-xs text-muted-foreground">
-                    {key === "monthly" ? "/ 월" : "/ 년"}
+                    {isMonthly ? "/ 월" : isYearly ? "/ 년" : ""}
                   </p>
                 )}
               </CardHeader>

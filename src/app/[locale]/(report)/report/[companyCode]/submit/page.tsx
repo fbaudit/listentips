@@ -130,7 +130,7 @@ export default function ReportSubmitPage() {
       const res = await fetch("/api/ai/validate-report", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content, title }),
+        body: JSON.stringify({ content, title, companyCode }),
       });
       const data = await res.json();
       setAiValidation(data);

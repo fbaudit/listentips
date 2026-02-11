@@ -433,6 +433,7 @@ export default function AdminSettingsPage() {
                     }
                   >
                     <option value="">선택하세요</option>
+                    <option value="gabia">가비아</option>
                     <option value="aligo">알리고</option>
                     <option value="naver_cloud">네이버 클라우드</option>
                     <option value="twilio">Twilio</option>
@@ -444,7 +445,7 @@ export default function AdminSettingsPage() {
                     <Input
                       id="sms_api_key"
                       type="password"
-                      placeholder="API 키를 입력하세요"
+                      placeholder={sms.provider === "gabia" ? "SMS_ID:API_KEY" : sms.provider === "twilio" ? "ACCOUNT_SID:AUTH_TOKEN" : "API 키를 입력하세요"}
                       value={sms.api_key}
                       onChange={(e) =>
                         setSms({ ...sms, api_key: e.target.value })

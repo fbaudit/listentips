@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getGeminiClient } from "@/lib/ai/gemini";
+import { getCompanyAIClient } from "@/lib/ai/client";
+import type { AIMessage } from "@/lib/ai/client";
 import { CHATBOT_SYSTEM_PROMPT } from "@/lib/ai/prompts";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -41,23 +42,18 @@ export async function POST(request: NextRequest) {
       .replace("{{company_name}}", company.company_name)
       .replace("{{documents}}", documentContext);
 
-    const genai = getGeminiClient();
-    const model = genai.models;
+    const aiClient = await getCompanyAIClient(company.id);
 
-    const chatHistory = (history || []).map((h: { role: string; content: string }) => ({
-      role: h.role === "user" ? "user" : "model",
-      parts: [{ text: h.content }],
-    }));
+    const chatMessages: AIMessage[] = [
+      { role: "system", content: systemPrompt },
+      ...(history || []).map((h: { role: string; content: string }) => ({
+        role: (h.role === "user" ? "user" : "assistant") as AIMessage["role"],
+        content: h.content,
+      })),
+      { role: "user" as const, content: message },
+    ];
 
-    const response = await model.generateContent({
-      model: "gemini-2.0-flash",
-      contents: [
-        { role: "user", parts: [{ text: systemPrompt }] },
-        { role: "model", parts: [{ text: "네, 이해했습니다. 제보 관련 안내를 도와드리겠습니다." }] },
-        ...chatHistory,
-        { role: "user", parts: [{ text: message }] },
-      ],
-    });
+    const response = await aiClient.generateChat(chatMessages);
 
     const text = response.text || "죄송합니다. 응답을 생성할 수 없습니다.";
 

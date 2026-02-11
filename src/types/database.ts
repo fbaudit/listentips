@@ -3,7 +3,7 @@
 
 export type UserRole = "super_admin" | "company_admin";
 export type ApplicationStatus = "pending" | "approved" | "rejected";
-export type SubscriptionPlan = "free_trial" | "monthly" | "yearly";
+export type SubscriptionPlan = "free_trial" | "monthly" | "yearly" | "premium_monthly" | "premium_yearly";
 export type SubscriptionStatus = "active" | "expired" | "cancelled" | "past_due";
 export type PaymentProvider = "toss" | "stripe";
 export type NotificationType = "new_report" | "status_change" | "new_comment" | "subscription_expiry" | "system";
@@ -37,6 +37,9 @@ export interface Company {
   primary_color: string;
   use_ai_validation: boolean;
   use_chatbot: boolean;
+  ai_provider: string | null;
+  ai_api_key_encrypted: string | null;
+  ai_encryption_iv: string | null;
   preferred_locale: string;
   service_start: string | null;
   service_end: string | null;

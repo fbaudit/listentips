@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getGeminiClient } from "@/lib/ai/gemini";
+import { getCompanyAIClient } from "@/lib/ai/client";
 import { REPORT_VALIDATION_PROMPT } from "@/lib/ai/prompts";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 export async function POST(request: NextRequest) {
   try {
-    const { content, title } = await request.json();
+    const { content, title, companyCode } = await request.json();
 
     if (!content || content.length < 20) {
       return NextResponse.json(
@@ -13,16 +14,27 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const genai = getGeminiClient();
+    // Resolve companyId from companyCode
+    let companyId: string | null = null;
+    if (companyCode) {
+      const supabase = createAdminClient();
+      const { data: company } = await supabase
+        .from("companies")
+        .select("id")
+        .eq("company_code", companyCode)
+        .single();
+      companyId = company?.id || null;
+    }
+
+    const aiClient = companyId
+      ? await getCompanyAIClient(companyId)
+      : await getCompanyAIClient("");
 
     const prompt = REPORT_VALIDATION_PROMPT
       .replace("{title}", title || "")
       .replace("{content}", content);
 
-    const response = await genai.models.generateContent({
-      model: "gemini-2.0-flash",
-      contents: prompt,
-    });
+    const response = await aiClient.generateContent(prompt);
 
     const text = response.text || "";
 

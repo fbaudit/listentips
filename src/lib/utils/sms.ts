@@ -69,6 +69,44 @@ export async function sendSMS({ to, message }: SmsOptions): Promise<boolean> {
         return response.ok;
       }
 
+      case "gabia": {
+        // api_key format: "SMS_ID:API_KEY"
+        const [smsId, apiKey] = settings.api_key.split(":");
+        if (!smsId || !apiKey) return false;
+
+        // Step 1: OAuth 토큰 발급
+        const tokenRes = await fetch("https://sms.gabia.com/oauth/token", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+            Authorization: `Basic ${btoa(`${smsId}:${apiKey}`)}`,
+          },
+          body: "grant_type=client_credentials",
+        });
+
+        if (!tokenRes.ok) return false;
+        const tokenData = await tokenRes.json();
+        const accessToken = tokenData.access_token;
+        if (!accessToken) return false;
+
+        // Step 2: SMS 발송
+        const smsForm = new URLSearchParams();
+        smsForm.append("phone", to);
+        smsForm.append("callback", settings.sender_number);
+        smsForm.append("message", message);
+
+        const smsRes = await fetch("https://sms.gabia.com/api/send/sms", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+            Authorization: `Basic ${btoa(`${smsId}:${accessToken}`)}`,
+          },
+          body: smsForm.toString(),
+        });
+
+        return smsRes.ok;
+      }
+
       case "twilio": {
         // Twilio requires Account SID and Auth Token
         // api_key format: "ACCOUNT_SID:AUTH_TOKEN"

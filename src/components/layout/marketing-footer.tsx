@@ -1,5 +1,5 @@
-import Link from "next/link";
 import { useTranslations } from "next-intl";
+import { Link } from "@/i18n/routing";
 import { Shield } from "lucide-react";
 
 export function MarketingFooter() {
@@ -17,11 +17,14 @@ export function MarketingFooter() {
             <p className="text-sm text-muted-foreground">{t("description")}</p>
           </div>
           <div>
-            <h4 className="font-semibold mb-3">Links</h4>
-            <div className="flex flex-col gap-2 text-sm text-muted-foreground">
-              <Link href="/features" className="hover:text-primary">Features</Link>
-              <Link href="/pricing" className="hover:text-primary">Pricing</Link>
-              <Link href="/apply" className="hover:text-primary">Apply</Link>
+            <h4 className="font-semibold mb-3">Information</h4>
+            <div className="flex flex-col gap-1.5 text-sm text-muted-foreground">
+              <span>에이치엠컴퍼니(주)</span>
+              <span>사업자번호: 214-88-85057</span>
+              <span>대표자: 조근호</span>
+              <span>대표전화: 02-6237-6233</span>
+              <span>팩스: 02-6237-6240</span>
+              <span>서울특별시 서초구 효령로70길 36-9, 와이엘타워 2층, 3층</span>
             </div>
           </div>
           <div>
@@ -29,7 +32,7 @@ export function MarketingFooter() {
             <div className="flex flex-col gap-2 text-sm text-muted-foreground">
               <Link href="/terms" className="hover:text-primary">{t("terms")}</Link>
               <Link href="/privacy" className="hover:text-primary">{t("privacy")}</Link>
-              <Link href="/contact" className="hover:text-primary">{t("contact")}</Link>
+              <a href="mailto:office@hmcom.co.kr" className="hover:text-primary">{t("contact")}</a>
             </div>
           </div>
         </div>
