@@ -97,9 +97,10 @@ export async function notifyCompanyAdmins(options: NotifyOptions): Promise<void>
 
   // 5. Insert all notifications at once
   if (notificationInserts.length > 0) {
-    await supabase.from("notifications").insert(notificationInserts).catch((err: unknown) =>
-      console.error("Notification insert error:", err)
-    );
+    const { error: insertErr } = await supabase.from("notifications").insert(notificationInserts);
+    if (insertErr) {
+      console.error("Notification insert error:", insertErr);
+    }
   }
 }
 
