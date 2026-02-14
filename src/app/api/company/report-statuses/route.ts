@@ -12,7 +12,7 @@ export async function GET() {
 
   const { data: statuses, error } = await supabase
     .from("report_statuses")
-    .select("id, status_name, status_name_en, color_code, display_order, is_default, is_terminal")
+    .select("id, status_name, status_name_en, status_name_ja, status_name_zh, color_code, display_order, is_default, is_terminal")
     .eq("company_id", session.user.companyId)
     .order("display_order");
 
@@ -50,6 +50,8 @@ export async function POST(request: NextRequest) {
       company_id: session.user.companyId,
       status_name: body.status_name,
       status_name_en: body.status_name_en || null,
+      status_name_ja: body.status_name_ja || null,
+      status_name_zh: body.status_name_zh || null,
       color_code: body.color_code || "#6b7280",
       display_order: (maxOrder?.display_order || 0) + 1,
       is_default: body.is_default || false,

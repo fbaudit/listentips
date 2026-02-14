@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
 
   const success = await sendSMS({
     to,
-    message: "[모두의 제보채널] 테스트 SMS입니다. SMS 설정이 정상 작동합니다.",
+    message: "[모두의 제보채널 Listen] 테스트 SMS입니다. SMS 설정이 정상 작동합니다.",
   });
 
   if (!success) {

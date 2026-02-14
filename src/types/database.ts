@@ -1,7 +1,7 @@
 // Supabase Database Types
 // In production, generate these with: npx supabase gen types typescript
 
-export type UserRole = "super_admin" | "company_admin";
+export type UserRole = "super_admin" | "admin" | "other_admin" | "company_admin";
 export type ApplicationStatus = "pending" | "approved" | "rejected";
 export type SubscriptionPlan = "free_trial" | "monthly" | "yearly" | "premium_monthly" | "premium_yearly";
 export type SubscriptionStatus = "active" | "expired" | "cancelled" | "past_due";
@@ -40,9 +40,20 @@ export interface Company {
   ai_provider: string | null;
   ai_api_key_encrypted: string | null;
   ai_encryption_iv: string | null;
+  data_encryption_key: string | null;
+  data_encryption_iv: string | null;
+  data_key_hash: string | null;
   preferred_locale: string;
   service_start: string | null;
   service_end: string | null;
+  block_foreign_ip: boolean;
+  allowed_countries: string[];
+  ip_blocklist: string[];
+  rate_limit_enabled: boolean;
+  rate_limit_max_reports: number;
+  rate_limit_window_minutes: number;
+  min_password_length: number;
+  require_special_chars: boolean;
   is_active: boolean;
   created_at: string;
   updated_at: string;
@@ -76,8 +87,38 @@ export interface ReportType {
   type_name_en: string | null;
   type_name_ja: string | null;
   type_name_zh: string | null;
+  code: string | null;
   description: string | null;
+  notes: string | null;
   display_order: number;
+  is_active: boolean;
+  created_at: string;
+}
+
+export interface DefaultReportType {
+  id: string;
+  type_name: string;
+  type_name_en: string | null;
+  type_name_ja: string | null;
+  type_name_zh: string | null;
+  code: string | null;
+  description: string | null;
+  notes: string | null;
+  display_order: number;
+  is_active: boolean;
+  created_at: string;
+}
+
+export interface DefaultReportStatus {
+  id: string;
+  status_name: string;
+  status_name_en: string | null;
+  status_name_ja: string | null;
+  status_name_zh: string | null;
+  color_code: string;
+  display_order: number;
+  is_default: boolean;
+  is_terminal: boolean;
   is_active: boolean;
   created_at: string;
 }
@@ -204,8 +245,11 @@ export interface Application {
   employee_count: number | null;
   address: string | null;
   department: string | null;
+  channel_name: string | null;
   report_types: string[];
   welcome_message: string | null;
+  report_guide_message: string | null;
+  content_blocks: Array<{ id: string; content: string; order: number }> | null;
   display_fields: string[] | null;
   preferred_locale: string;
   use_ai_validation: boolean;
@@ -226,10 +270,15 @@ export interface Application {
 export interface CompanyDocument {
   id: string;
   company_id: string;
+  title: string | null;
   file_name: string;
   file_path: string;
   file_size: number;
   mime_type: string;
   content_text: string | null;
+  is_active: boolean;
+  gemini_file_uri: string | null;
+  gemini_file_name: string | null;
+  gemini_uploaded_at: string | null;
   created_at: string;
 }

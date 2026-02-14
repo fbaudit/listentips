@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useTranslations } from "next-intl";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -14,23 +14,65 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Building2, User, CreditCard, FileCheck, CheckCircle2, ArrowLeft, ArrowRight, Loader2, Check, X } from "lucide-react";
+import { Building2, Settings, CreditCard, FileCheck, CheckCircle2, ArrowLeft, ArrowRight, Loader2, Check, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Link } from "@/i18n/routing";
 
 const STEPS = [
   { icon: Building2, label: "기업 정보" },
-  { icon: User, label: "담당자 정보" },
+  { icon: Settings, label: "채널 설정" },
   { icon: CreditCard, label: "요금제 선택" },
   { icon: FileCheck, label: "약관 동의" },
   { icon: CheckCircle2, label: "확인 및 제출" },
 ];
 
-const REPORT_TYPE_OPTIONS = [
-  "횡령/부정", "뇌물/부패", "이해충돌", "직장내 괴롭힘",
-  "성희롱/성폭력", "차별", "안전/보건 위반", "환경 위반",
-  "개인정보 침해", "회계부정", "기타",
-];
+interface DefaultReportType {
+  id: string;
+  type_name: string;
+  type_name_en: string | null;
+  type_name_ja: string | null;
+  type_name_zh: string | null;
+}
+
+interface DefaultReportStatus {
+  id: string;
+  status_name: string;
+  color_code: string;
+  display_order: number;
+  is_default: boolean;
+  is_terminal: boolean;
+}
+
+interface DefaultContentBlock {
+  id: string;
+  content: string;
+  display_order: number;
+}
+
+const FIELD_LABELS: Record<string, string> = {
+  companyName: "회사명",
+  businessNumber: "사업자번호",
+  industry: "업종",
+  employeeCount: "직원 수",
+  address: "주소",
+  department: "담당부서",
+  adminName: "담당자 이름",
+  adminEmail: "이메일",
+  adminPhone: "전화번호",
+  adminUsername: "로그인 ID",
+  adminPassword: "비밀번호",
+  adminPasswordConfirm: "비밀번호 확인",
+  channelName: "채널 이름",
+  reportTypes: "제보 유형",
+  welcomeMessage: "안내 메시지",
+  reportGuideMessage: "제보내용 안내문구",
+  contentBlocks: "안내 블록",
+  preferredLocale: "선호 언어",
+  useAiValidation: "AI 검증",
+  useChatbot: "AI 챗봇",
+  agreedTerms: "이용약관 동의",
+  agreedPrivacy: "개인정보처리방침 동의",
+};
 
 const INDUSTRY_OPTIONS = [
   "제조업", "IT/소프트웨어", "금융/보험", "의료/제약",
@@ -49,6 +91,10 @@ export default function ApplyPage() {
   const [usernameCheckMsg, setUsernameCheckMsg] = useState("");
   const [isCheckingUsername, setIsCheckingUsername] = useState(false);
   const [stepValidated, setStepValidated] = useState<Record<number, boolean>>({});
+  const [defaultReportTypes, setDefaultReportTypes] = useState<DefaultReportType[]>([]);
+  const [defaultStatuses, setDefaultStatuses] = useState<DefaultReportStatus[]>([]);
+  const [allContentBlocks, setAllContentBlocks] = useState<DefaultContentBlock[]>([]);
+  const [selectedBlockIds, setSelectedBlockIds] = useState<Set<string>>(new Set());
 
   const form = useForm<ApplicationInput>({
     resolver: zodResolver(applicationSchema),
@@ -58,28 +104,64 @@ export default function ApplyPage() {
       industry: "",
       employeeCount: undefined,
       address: "",
+      addressDetail: "",
       department: "",
-      reportTypes: [],
-      welcomeMessage: "",
-      preferredLocale: "ko",
-      useAiValidation: false,
-      useChatbot: false,
       adminName: "",
       adminEmail: "",
       adminPhone: "",
       adminUsername: "",
       adminPassword: "",
       adminPasswordConfirm: "",
+      channelName: "",
+      reportTypes: [],
+      welcomeMessage: "",
+      reportGuideMessage: "",
+      contentBlocks: [],
+      preferredLocale: "ko",
+      useAiValidation: false,
+      useChatbot: false,
       agreedTerms: false,
       agreedPrivacy: false,
     },
   });
 
   const { register, watch, setValue, formState: { errors }, trigger } = form;
+
+  useEffect(() => {
+    fetch("/api/public/default-report-types")
+      .then((res) => res.json())
+      .then((data) => setDefaultReportTypes(data.reportTypes || []))
+      .catch(() => {});
+
+    fetch("/api/public/default-report-statuses")
+      .then((res) => res.json())
+      .then((data) => setDefaultStatuses(data.statuses || []))
+      .catch(() => {});
+
+    fetch("/api/public/default-content-blocks")
+      .then((res) => res.json())
+      .then((data) => {
+        const blocks: DefaultContentBlock[] = data.blocks || [];
+        setAllContentBlocks(blocks);
+        // Select all by default
+        const allIds = new Set(blocks.map((b: DefaultContentBlock) => b.id));
+        setSelectedBlockIds(allIds);
+        // Sync to form
+        const formBlocks = blocks.map((b: DefaultContentBlock) => ({
+          id: b.id,
+          content: b.content,
+          order: b.display_order,
+        }));
+        if (formBlocks.length > 0) {
+          setValue("contentBlocks", formBlocks);
+        }
+      })
+      .catch(() => {});
+  }, [setValue]);
+
   const watchedReportTypes = watch("reportTypes");
   const watchedPassword = watch("adminPassword");
   const watchedPasswordConfirm = watch("adminPasswordConfirm");
-
   const passwordRules = [
     { test: (v: string) => v.length >= 8, label: "8자 이상" },
     { test: (v: string) => /[A-Z]/.test(v), label: "대문자 포함" },
@@ -102,6 +184,24 @@ export default function ApplyPage() {
     if (updated.length > 0) {
       form.clearErrors("reportTypes");
     }
+  };
+
+  useEffect(() => {
+    const handler = (e: MessageEvent) => {
+      if (e.data?.type === "DAUM_POSTCODE_RESULT") {
+        setValue("address", `(${e.data.zonecode}) ${e.data.roadAddress}`);
+      }
+    };
+    window.addEventListener("message", handler);
+    return () => window.removeEventListener("message", handler);
+  }, [setValue]);
+
+  const openAddressSearch = () => {
+    const width = 500;
+    const height = 600;
+    const left = (window.screen.width - width) / 2;
+    const top = (window.screen.height - height) / 2;
+    window.open("/postcode.html", "postcodePopup", `width=${width},height=${height},left=${left},top=${top}`);
   };
 
   const checkUsername = async () => {
@@ -135,18 +235,33 @@ export default function ApplyPage() {
     }
   };
 
+  const toggleContentBlock = (blockId: string) => {
+    const newSelected = new Set(selectedBlockIds);
+    if (newSelected.has(blockId)) {
+      newSelected.delete(blockId);
+    } else {
+      newSelected.add(blockId);
+    }
+    setSelectedBlockIds(newSelected);
+    // Sync selected blocks to form
+    const formBlocks = allContentBlocks
+      .filter((b) => newSelected.has(b.id))
+      .map((b) => ({ id: b.id, content: b.content, order: b.display_order }));
+    setValue("contentBlocks", formBlocks);
+  };
+
   const validateCurrentStep = async () => {
     setStepValidated((prev) => ({ ...prev, [currentStep]: true }));
     const fieldsMap: Record<number, (keyof ApplicationInput)[]> = {
-      0: ["companyName", "reportTypes"],
-      1: ["adminName", "adminEmail", "adminUsername", "adminPassword", "adminPasswordConfirm"],
+      0: ["companyName", "adminName", "adminEmail", "adminUsername", "adminPassword", "adminPasswordConfirm"],
+      1: ["reportTypes"],
       2: [],
       3: ["agreedTerms", "agreedPrivacy"],
     };
     const fields = fieldsMap[currentStep];
     if (!fields || fields.length === 0) return true;
     const valid = await trigger(fields);
-    if (currentStep === 1 && valid && (!usernameChecked || !usernameAvailable)) {
+    if (currentStep === 0 && valid && (!usernameChecked || !usernameAvailable)) {
       form.setError("adminUsername", { message: "아이디 중복확인을 해주세요" });
       return false;
     }
@@ -156,6 +271,14 @@ export default function ApplyPage() {
   const handleNext = async () => {
     const isValid = await validateCurrentStep();
     if (isValid) {
+      // Auto-fill channel name if empty when moving to channel settings
+      if (currentStep === 0) {
+        const channelName = watch("channelName");
+        const companyName = watch("companyName");
+        if (!channelName && companyName) {
+          setValue("channelName", `${companyName} 제보채널`);
+        }
+      }
       setCurrentStep((prev) => Math.min(prev + 1, STEPS.length - 1));
     }
   };
@@ -165,8 +288,16 @@ export default function ApplyPage() {
   };
 
   const handleSubmit = async () => {
+    // Clean NaN from number fields before validation
+    const ec = form.getValues("employeeCount");
+    if (ec === undefined || (typeof ec === "number" && Number.isNaN(ec))) {
+      form.setValue("employeeCount", undefined);
+    }
+
     const isValid = await form.trigger();
-    if (!isValid) return;
+    if (!isValid) {
+      return;
+    }
 
     setIsSubmitting(true);
     try {
@@ -251,18 +382,21 @@ export default function ApplyPage() {
 
       <Card>
         <CardContent className="p-6">
-          {/* Step 0: Company Info */}
+          {/* Step 0: Company Info + Admin Info */}
           {currentStep === 0 && (
             <div className="space-y-6">
               <CardHeader className="p-0">
                 <CardTitle>{t("step1.title")}</CardTitle>
                 <CardDescription>{t("step1.description")}</CardDescription>
               </CardHeader>
+
+              {/* Company Info */}
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2 sm:col-span-2">
                   <Label htmlFor="companyName">{t("step1.companyName")} *</Label>
                   <Input
                     id="companyName"
+                    className="bg-red-50"
                     {...register("companyName", {
                       onChange: (e) => {
                         if (e.target.value.length > 0) form.clearErrors("companyName");
@@ -297,7 +431,7 @@ export default function ApplyPage() {
                   <Input
                     id="employeeCount"
                     type="number"
-                    {...register("employeeCount", { valueAsNumber: true })}
+                    {...register("employeeCount", { setValueAs: (v: string) => { if (v === "" || v === undefined) return undefined; const n = Number(v); return Number.isNaN(n) ? undefined : n; } })}
                     placeholder="100"
                   />
                 </div>
@@ -307,153 +441,337 @@ export default function ApplyPage() {
                 </div>
                 <div className="space-y-2 sm:col-span-2">
                   <Label htmlFor="address">{t("step1.address")}</Label>
-                  <Input id="address" {...register("address")} placeholder="서울특별시 강남구..." />
+                  <div className="flex gap-2">
+                    <Input
+                      id="address"
+                      {...register("address")}
+                      placeholder="주소 검색 버튼을 클릭하세요"
+                      readOnly
+                      className="flex-1 bg-muted cursor-pointer"
+                      onClick={openAddressSearch}
+                    />
+                    <Button type="button" variant="outline" onClick={openAddressSearch}>
+                      주소 검색
+                    </Button>
+                  </div>
                 </div>
+                {watch("address") && (
+                  <div className="space-y-2 sm:col-span-2">
+                    <Label htmlFor="addressDetail">상세주소</Label>
+                    <Input
+                      id="addressDetail"
+                      {...register("addressDetail")}
+                      placeholder="동/호수 등 상세주소 입력"
+                    />
+                  </div>
+                )}
               </div>
 
-              <div className="space-y-2">
-                <Label>{t("step1.reportTypes")} *</Label>
-                <div className="flex flex-wrap gap-2">
-                  {REPORT_TYPE_OPTIONS.map((type) => (
-                    <Badge
-                      key={type}
-                      variant={watchedReportTypes?.includes(type) ? "default" : "outline"}
-                      className="cursor-pointer"
-                      onClick={() => toggleReportType(type)}
-                    >
-                      {type}
-                    </Badge>
-                  ))}
-                </div>
-                {errors.reportTypes && <p className="text-sm text-destructive">{errors.reportTypes.message}</p>}
-                  {stepValidated[0] && !errors.reportTypes && watchedReportTypes?.length > 0 && (
-                    <p className="text-xs text-green-600 flex items-center gap-1">
-                      <Check className="w-3 h-3" /> {watchedReportTypes.length}개 유형이 선택되었습니다
-                    </p>
-                  )}
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="welcomeMessage">{t("step1.welcomeMessage")}</Label>
-                <Textarea
-                  id="welcomeMessage"
-                  {...register("welcomeMessage")}
-                  placeholder="제보자에게 보여줄 환영 메시지를 입력하세요..."
-                  rows={3}
-                />
-              </div>
-
-              <div className="flex gap-4">
-                <div className="flex items-center gap-2">
-                  <Checkbox
-                    id="useAiValidation"
-                    checked={watch("useAiValidation")}
-                    onCheckedChange={(v) => setValue("useAiValidation", !!v)}
-                  />
-                  <Label htmlFor="useAiValidation" className="cursor-pointer">AI 콘텐츠 검증 사용</Label>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Checkbox
-                    id="useChatbot"
-                    checked={watch("useChatbot")}
-                    onCheckedChange={(v) => setValue("useChatbot", !!v)}
-                  />
-                  <Label htmlFor="useChatbot" className="cursor-pointer">AI 챗봇 사용</Label>
+              {/* Admin Info - merged */}
+              <div className="border-t pt-6">
+                <h3 className="text-lg font-semibold mb-4">담당자 정보</h3>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-2 sm:col-span-2">
+                    <Label htmlFor="adminUsername">{t("step2.username")} (이메일) *</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        id="adminUsername"
+                        type="email"
+                        {...register("adminUsername", {
+                          onChange: () => {
+                            setUsernameChecked(false);
+                            setUsernameAvailable(false);
+                            setUsernameCheckMsg("");
+                          },
+                        })}
+                        placeholder="user@example.com"
+                        className="flex-1 bg-red-50"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={checkUsername}
+                        disabled={isCheckingUsername}
+                      >
+                        {isCheckingUsername ? <Loader2 className="w-4 h-4 animate-spin" /> : "중복확인"}
+                      </Button>
+                    </div>
+                    {errors.adminUsername && <p className="text-sm text-destructive">{errors.adminUsername.message}</p>}
+                    {usernameChecked && !errors.adminUsername && (
+                      <p className={cn("text-sm flex items-center gap-1", usernameAvailable ? "text-green-600" : "text-destructive")}>
+                        {usernameAvailable ? <Check className="w-4 h-4" /> : <X className="w-4 h-4" />}
+                        {usernameCheckMsg}
+                      </p>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="adminName">{t("step2.name")} *</Label>
+                    <Input id="adminName" className="bg-red-50" {...register("adminName")} placeholder="홍길동" />
+                    {errors.adminName && <p className="text-sm text-destructive">{errors.adminName.message}</p>}
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="adminEmail">{t("step2.email")} (비밀번호 찾기, 2차 인증) *</Label>
+                      <div className="flex items-center gap-1.5">
+                        <Checkbox
+                          id="admin_email_same"
+                          checked={watch("adminEmail") === watch("adminUsername") && watch("adminUsername") !== ""}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              setValue("adminEmail", watch("adminUsername"));
+                            }
+                          }}
+                        />
+                        <Label htmlFor="admin_email_same" className="text-xs text-muted-foreground cursor-pointer">
+                          로그인 ID(이메일)와 동일
+                        </Label>
+                      </div>
+                    </div>
+                    <Input id="adminEmail" type="email" className="bg-red-50" {...register("adminEmail")} placeholder="admin@example.com" />
+                    {errors.adminEmail && <p className="text-sm text-destructive">{errors.adminEmail.message}</p>}
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="adminPhone">{t("step2.phone")}</Label>
+                    <Input id="adminPhone" {...register("adminPhone")} placeholder="010-1234-5678" />
+                  </div>
+                  <div className="space-y-2 sm:col-span-2">
+                    <Label htmlFor="adminPassword">{t("step2.password")} *</Label>
+                    <Input id="adminPassword" type="password" className="bg-red-50" {...register("adminPassword")} placeholder="대/소문자, 숫자, 특수문자 포함 8자 이상" />
+                    {watchedPassword ? (
+                      <div className="flex flex-wrap gap-x-3 gap-y-1">
+                        {passwordRules.map((rule) => {
+                          const passed = rule.test(watchedPassword);
+                          return (
+                            <span key={rule.label} className={cn("text-xs flex items-center gap-1", passed ? "text-green-600" : "text-muted-foreground")}>
+                              {passed ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
+                              {rule.label}
+                            </span>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <p className="text-xs text-muted-foreground">대문자, 소문자, 숫자, 특수문자를 포함하여 8자 이상</p>
+                    )}
+                    {allPasswordRulesPassed && (
+                      <p className="text-xs text-green-600 flex items-center gap-1">
+                        <Check className="w-3 h-3" /> 모든 조건을 만족합니다
+                      </p>
+                    )}
+                  </div>
+                  <div className="space-y-2 sm:col-span-2">
+                    <Label htmlFor="adminPasswordConfirm">비밀번호 확인 *</Label>
+                    <Input id="adminPasswordConfirm" type="password" className="bg-red-50" {...register("adminPasswordConfirm")} placeholder="비밀번호를 다시 입력하세요" />
+                    {watchedPasswordConfirm && (
+                      <p className={cn("text-xs flex items-center gap-1", passwordsMatch ? "text-green-600" : "text-destructive")}>
+                        {passwordsMatch ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
+                        {passwordsMatch ? "비밀번호가 일치합니다" : "비밀번호가 일치하지 않습니다"}
+                      </p>
+                    )}
+                    {errors.adminPasswordConfirm && !watchedPasswordConfirm && <p className="text-sm text-destructive">{errors.adminPasswordConfirm.message}</p>}
+                  </div>
                 </div>
               </div>
             </div>
           )}
 
-          {/* Step 1: Admin Info */}
+          {/* Step 1: Channel Settings */}
           {currentStep === 1 && (
             <div className="space-y-6">
               <CardHeader className="p-0">
-                <CardTitle>{t("step2.title")}</CardTitle>
-                <CardDescription>{t("step2.description")}</CardDescription>
+                <CardTitle>채널 설정</CardTitle>
+                <CardDescription>
+                  제보 채널의 기본 설정을 구성합니다.{" "}
+                  <span className="text-red-500">
+                    추후 제보채널 이름, 안내 메시지, 제보내용 작성 안내문구, 채널 메인 안내 블록, AI 기능, 제보유형, 기본제보 상태 모두 수정 가능합니다.
+                  </span>
+                </CardDescription>
               </CardHeader>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="adminName">{t("step2.name")} *</Label>
-                  <Input id="adminName" {...register("adminName")} placeholder="홍길동" />
-                  {errors.adminName && <p className="text-sm text-destructive">{errors.adminName.message}</p>}
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="adminEmail">{t("step2.email")} *</Label>
-                  <Input id="adminEmail" type="email" {...register("adminEmail")} placeholder="admin@example.com" />
-                  {errors.adminEmail && <p className="text-sm text-destructive">{errors.adminEmail.message}</p>}
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="adminPhone">{t("step2.phone")}</Label>
-                  <Input id="adminPhone" {...register("adminPhone")} placeholder="010-1234-5678" />
-                </div>
-                <div className="space-y-2 sm:col-span-2">
-                  <Label htmlFor="adminUsername">{t("step2.username")} *</Label>
-                  <div className="flex gap-2">
-                    <Input
-                      id="adminUsername"
-                      {...register("adminUsername", {
-                        onChange: () => {
-                          setUsernameChecked(false);
-                          setUsernameAvailable(false);
-                          setUsernameCheckMsg("");
-                        },
-                      })}
-                      placeholder="admin_user"
-                      className="flex-1"
-                    />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={checkUsername}
-                      disabled={isCheckingUsername}
-                    >
-                      {isCheckingUsername ? <Loader2 className="w-4 h-4 animate-spin" /> : "중복확인"}
-                    </Button>
+
+              <div className="space-y-2">
+                <Label htmlFor="channelName">제보 채널 이름</Label>
+                <Input
+                  id="channelName"
+                  {...register("channelName")}
+                  placeholder={`${watch("companyName") || "기업명"} 제보채널`}
+                />
+                <p className="text-xs text-muted-foreground">제보자에게 표시되는 채널 이름입니다</p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="welcomeMessage">안내 메시지</Label>
+                <Textarea
+                  id="welcomeMessage"
+                  {...register("welcomeMessage")}
+                  placeholder="제보자에게 보여줄 안내 메시지를 입력하세요..."
+                  rows={3}
+                />
+                <div className="space-y-1">
+                  <p className="text-xs text-muted-foreground">예시를 클릭하면 자동으로 입력됩니다</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {[
+                      "당신의 용기는 기록되지 않고, 사실만 남습니다",
+                      "혼자 고민하지 않아도 됩니다. 제보는 보호받아야 할 권리입니다",
+                      "작은 의심 하나가 조직을 바꾸는 시작이 될 수 있습니다",
+                      "말하지 않으면 바뀌지 않습니다. 말해도 당신은 드러나지 않습니다",
+                      "사실을 아는 사람이 가장 먼저 보호받아야 합니다",
+                    ].map((msg) => (
+                      <button
+                        key={msg}
+                        type="button"
+                        onClick={() => setValue("welcomeMessage", msg)}
+                        className="text-xs text-left px-2 py-1 rounded-md border border-muted bg-muted/30 hover:bg-primary/10 hover:border-primary/30 transition-colors cursor-pointer"
+                      >
+                        {msg}
+                      </button>
+                    ))}
                   </div>
-                  {errors.adminUsername && <p className="text-sm text-destructive">{errors.adminUsername.message}</p>}
-                  {usernameChecked && !errors.adminUsername && (
-                    <p className={cn("text-sm flex items-center gap-1", usernameAvailable ? "text-green-600" : "text-destructive")}>
-                      {usernameAvailable ? <Check className="w-4 h-4" /> : <X className="w-4 h-4" />}
-                      {usernameCheckMsg}
-                    </p>
-                  )}
-                </div>
-                <div className="space-y-2 sm:col-span-2">
-                  <Label htmlFor="adminPassword">{t("step2.password")} *</Label>
-                  <Input id="adminPassword" type="password" {...register("adminPassword")} placeholder="대/소문자, 숫자, 특수문자 포함 8자 이상" />
-                  {watchedPassword ? (
-                    <div className="flex flex-wrap gap-x-3 gap-y-1">
-                      {passwordRules.map((rule) => {
-                        const passed = rule.test(watchedPassword);
-                        return (
-                          <span key={rule.label} className={cn("text-xs flex items-center gap-1", passed ? "text-green-600" : "text-muted-foreground")}>
-                            {passed ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
-                            {rule.label}
-                          </span>
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <p className="text-xs text-muted-foreground">대문자, 소문자, 숫자, 특수문자를 포함하여 8자 이상</p>
-                  )}
-                  {allPasswordRulesPassed && (
-                    <p className="text-xs text-green-600 flex items-center gap-1">
-                      <Check className="w-3 h-3" /> 모든 조건을 만족합니다
-                    </p>
-                  )}
-                </div>
-                <div className="space-y-2 sm:col-span-2">
-                  <Label htmlFor="adminPasswordConfirm">비밀번호 확인 *</Label>
-                  <Input id="adminPasswordConfirm" type="password" {...register("adminPasswordConfirm")} placeholder="비밀번호를 다시 입력하세요" />
-                  {watchedPasswordConfirm && (
-                    <p className={cn("text-xs flex items-center gap-1", passwordsMatch ? "text-green-600" : "text-destructive")}>
-                      {passwordsMatch ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
-                      {passwordsMatch ? "비밀번호가 일치합니다" : "비밀번호가 일치하지 않습니다"}
-                    </p>
-                  )}
-                  {errors.adminPasswordConfirm && !watchedPasswordConfirm && <p className="text-sm text-destructive">{errors.adminPasswordConfirm.message}</p>}
                 </div>
               </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="reportGuideMessage">제보내용 작성 안내문구</Label>
+                <Textarea
+                  id="reportGuideMessage"
+                  {...register("reportGuideMessage")}
+                  placeholder="제보 내용 입력란에 표시되는 안내문구를 입력하세요..."
+                  rows={5}
+                />
+                <div className="space-y-1">
+                  <p className="text-xs text-muted-foreground">예시를 클릭하면 안내문구에 추가됩니다</p>
+                  <div className="flex flex-col gap-1">
+                    {[
+                      "단순 민원성 제보나 근거 없이 타인을 비방하거나 음해하는 내용의 제보는 처리되지 않을 수도 있습니다.",
+                      "사실에 근거해 육하원칙에 따라 구체적으로 작성해주시기 바랍니다.",
+                      "피제보자의 실명을 기재해주시면 보다 정확한 파악이 가능합니다.",
+                      "익명 제보 시 답변은 처리확인에서 수시 확인해주시기 바랍니다.",
+                      "명백한 사안 시 제보처리 진행과정을 이메일 또는 문자로 안내 받을 수 있습니다.",
+                    ].map((msg, idx) => (
+                      <button
+                        key={msg}
+                        type="button"
+                        onClick={() => {
+                          const current = watch("reportGuideMessage") || "";
+                          if (current.includes(msg)) return;
+                          setValue("reportGuideMessage", current ? `${current}\n${msg}` : msg);
+                        }}
+                        className="text-xs text-left px-2 py-1 rounded-md border border-muted bg-muted/30 hover:bg-primary/10 hover:border-primary/30 transition-colors cursor-pointer"
+                      >
+                        {msg}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Content Blocks */}
+              <div className="space-y-2">
+                <Label>채널 메인 안내 블록</Label>
+                <p className="text-xs text-muted-foreground">제보 메인 페이지에 표시되는 안내 블록입니다. 클릭하여 선택/해제할 수 있습니다. 추후 수정이 가능합니다.</p>
+                {allContentBlocks.length === 0 && (
+                  <p className="text-sm text-muted-foreground py-4 text-center border rounded-md">등록된 안내 블록이 없습니다</p>
+                )}
+                <div className="space-y-2">
+                  {[...allContentBlocks]
+                    .sort((a, b) => a.display_order - b.display_order)
+                    .map((block) => {
+                      const isSelected = selectedBlockIds.has(block.id);
+                      return (
+                        <div
+                          key={block.id}
+                          onClick={() => toggleContentBlock(block.id)}
+                          className={cn(
+                            "rounded-lg border p-3 cursor-pointer transition-colors",
+                            isSelected
+                              ? "border-primary bg-primary/5 ring-1 ring-primary/20"
+                              : "border-muted bg-muted/30 opacity-60"
+                          )}
+                        >
+                          <div className="flex items-start gap-2">
+                            <div className={cn(
+                              "mt-0.5 w-5 h-5 rounded border flex items-center justify-center shrink-0 transition-colors",
+                              isSelected ? "bg-primary border-primary" : "border-muted-foreground/30"
+                            )}>
+                              {isSelected && <Check className="w-3 h-3 text-primary-foreground" />}
+                            </div>
+                            <div
+                              className="prose prose-sm max-w-none flex-1 [&>*:first-child]:mt-0 [&>*:last-child]:mb-0"
+                              dangerouslySetInnerHTML={{ __html: block.content }}
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
+                </div>
+              </div>
+
+              {/* AI Features */}
+              <div className="space-y-1">
+                <Label>AI 기능</Label>
+                <div className="flex gap-4">
+                  <div className="flex items-center gap-2">
+                    <Checkbox
+                      id="useAiValidation"
+                      checked={watch("useAiValidation")}
+                      onCheckedChange={(v) => setValue("useAiValidation", !!v)}
+                    />
+                    <Label htmlFor="useAiValidation" className="cursor-pointer">AI 제보내용 검증 사용</Label>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Checkbox
+                      id="useChatbot"
+                      checked={watch("useChatbot")}
+                      onCheckedChange={(v) => setValue("useChatbot", !!v)}
+                    />
+                    <Label htmlFor="useChatbot" className="cursor-pointer">AI 챗봇 사용</Label>
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground">인터넷이 연결된 환경에서 동작하며, Google Gemini, OpenAI API Key 입력 필요</p>
+              </div>
+
+              {/* Report Types */}
+              <div className="space-y-2">
+                <Label>제보 유형 *</Label>
+                <div className="flex flex-wrap gap-2 p-3 rounded-md bg-red-50 border border-red-100">
+                  {defaultReportTypes.map((rt) => (
+                    <Badge
+                      key={rt.id}
+                      variant={watchedReportTypes?.includes(rt.type_name) ? "default" : "outline"}
+                      className="cursor-pointer"
+                      onClick={() => toggleReportType(rt.type_name)}
+                    >
+                      {rt.type_name}
+                    </Badge>
+                  ))}
+                </div>
+                {errors.reportTypes && <p className="text-sm text-destructive">{errors.reportTypes.message}</p>}
+                {stepValidated[1] && !errors.reportTypes && watchedReportTypes?.length > 0 && (
+                  <p className="text-xs text-green-600 flex items-center gap-1">
+                    <Check className="w-3 h-3" /> {watchedReportTypes.length}개 유형이 선택되었습니다
+                  </p>
+                )}
+              </div>
+
+              {/* Report Statuses (read-only) */}
+              {defaultStatuses.length > 0 && (
+                <div className="space-y-2">
+                  <Label>기본 제보 상태</Label>
+                  <div className="flex flex-wrap gap-2 p-3 rounded-md bg-muted border">
+                    {defaultStatuses.map((status) => (
+                      <Badge
+                        key={status.id}
+                        variant="outline"
+                        className="cursor-default"
+                        style={{ borderColor: status.color_code, color: status.color_code }}
+                      >
+                        {status.status_name}
+                        {status.is_default && <span className="ml-1 text-[10px]">(기본)</span>}
+                        {status.is_terminal && <span className="ml-1 text-[10px]">(최종)</span>}
+                      </Badge>
+                    ))}
+                  </div>
+                  <p className="text-xs text-muted-foreground">기업 등록 후 설정에서 변경 가능합니다</p>
+                </div>
+              )}
             </div>
           )}
 
@@ -514,7 +832,7 @@ export default function ApplyPage() {
                 <CardDescription>{t("step4.description")}</CardDescription>
               </CardHeader>
               <div className="space-y-4">
-                <div className="rounded-lg border p-4 space-y-2">
+                <div className="rounded-lg border border-red-100 bg-red-50 p-4 space-y-2">
                   <div className="flex items-start gap-3">
                     <Checkbox
                       id="agreedTerms"
@@ -535,7 +853,7 @@ export default function ApplyPage() {
                   </div>
                   {errors.agreedTerms && <p className="text-sm text-destructive ml-7">{errors.agreedTerms.message}</p>}
                 </div>
-                <div className="rounded-lg border p-4 space-y-2">
+                <div className="rounded-lg border border-red-100 bg-red-50 p-4 space-y-2">
                   <div className="flex items-start gap-3">
                     <Checkbox
                       id="agreedPrivacy"
@@ -568,39 +886,67 @@ export default function ApplyPage() {
                 <CardDescription>{t("step5.description")}</CardDescription>
               </CardHeader>
               <div className="space-y-4">
+                {/* Company & Admin Info */}
                 <div className="rounded-lg border p-4 space-y-2">
                   <h3 className="font-semibold flex items-center gap-2">
-                    <Building2 className="w-4 h-4" /> 기업 정보
+                    <Building2 className="w-4 h-4" /> 기업 정보 / 담당자
                   </h3>
                   <div className="grid grid-cols-2 gap-2 text-sm">
-                    <div><span className="text-muted-foreground">회사명:</span> {watch("companyName")}</div>
-                    {watch("businessNumber") && <div><span className="text-muted-foreground">사업자번호:</span> {watch("businessNumber")}</div>}
-                    {watch("industry") && <div><span className="text-muted-foreground">업종:</span> {watch("industry")}</div>}
-                    {watch("employeeCount") && <div><span className="text-muted-foreground">직원 수:</span> {watch("employeeCount")}명</div>}
-                    {watch("department") && <div><span className="text-muted-foreground">담당부서:</span> {watch("department")}</div>}
-                    {watch("address") && <div className="col-span-2"><span className="text-muted-foreground">주소:</span> {watch("address")}</div>}
+                    <div><span className="text-muted-foreground">회사명:</span> {watch("companyName") || "-"}</div>
+                    <div><span className="text-muted-foreground">사업자번호:</span> {watch("businessNumber") || "-"}</div>
+                    <div><span className="text-muted-foreground">업종:</span> {watch("industry") || "-"}</div>
+                    <div><span className="text-muted-foreground">직원 수:</span> {watch("employeeCount") ? `${watch("employeeCount")}명` : "-"}</div>
+                    <div><span className="text-muted-foreground">담당부서:</span> {watch("department") || "-"}</div>
+                    <div className="col-span-2"><span className="text-muted-foreground">주소:</span> {watch("address") ? `${watch("address")}${watch("addressDetail") ? ` ${watch("addressDetail")}` : ""}` : "-"}</div>
                   </div>
-                  <div className="space-y-2 mt-2">
-                    <div className="text-sm">
+                  <div className="border-t pt-2 mt-2 grid grid-cols-2 gap-2 text-sm">
+                    <div><span className="text-muted-foreground">담당자:</span> {watch("adminName") || "-"}</div>
+                    <div><span className="text-muted-foreground">로그인 ID:</span> {watch("adminUsername") || "-"}</div>
+                    <div><span className="text-muted-foreground">이메일:</span> {watch("adminEmail") || "-"}</div>
+                    <div><span className="text-muted-foreground">전화번호:</span> {watch("adminPhone") || "-"}</div>
+                  </div>
+                </div>
+
+                {/* Channel Settings */}
+                <div className="rounded-lg border p-4 space-y-2">
+                  <h3 className="font-semibold flex items-center gap-2">
+                    <Settings className="w-4 h-4" /> 채널 설정
+                  </h3>
+                  <div className="space-y-2 text-sm">
+                    <div><span className="text-muted-foreground">채널 이름:</span> {watch("channelName") || "-"}</div>
+                    <div><span className="text-muted-foreground">안내 메시지:</span> {watch("welcomeMessage") || "-"}</div>
+                    <div><span className="text-muted-foreground">제보내용 안내문구:</span> {watch("reportGuideMessage") || "-"}</div>
+                    <div>
+                      <span className="text-muted-foreground">채널 메인 안내 블록:</span>
+                      {selectedBlockIds.size > 0 ? (
+                        <div className="mt-1 space-y-2">
+                          {allContentBlocks
+                            .filter((b) => selectedBlockIds.has(b.id))
+                            .map((block) => (
+                              <div
+                                key={block.id}
+                                className="rounded border p-2 text-xs prose prose-sm max-w-none"
+                                dangerouslySetInnerHTML={{ __html: block.content }}
+                              />
+                            ))}
+                        </div>
+                      ) : (
+                        <span> -</span>
+                      )}
+                    </div>
+                    <div>
                       <span className="text-muted-foreground">제보 유형:</span>
                       <div className="flex flex-wrap gap-1 mt-1">
-                        {watchedReportTypes?.map((type) => (
-                          <Badge key={type} variant="secondary" className="text-xs">{type}</Badge>
-                        ))}
+                        {watchedReportTypes?.length > 0
+                          ? watchedReportTypes.map((type) => (
+                              <Badge key={type} variant="secondary" className="text-xs">{type}</Badge>
+                            ))
+                          : <span>-</span>}
                       </div>
                     </div>
-                    {watch("welcomeMessage") && (
-                      <div className="text-sm">
-                        <span className="text-muted-foreground">환영 메시지:</span> {watch("welcomeMessage")}
-                      </div>
-                    )}
-                    <div className="text-sm">
-                      <span className="text-muted-foreground">기본 언어:</span>{" "}
-                      {{ ko: "한국어", en: "English", ja: "日本語", zh: "中文" }[watch("preferredLocale")] || watch("preferredLocale")}
-                    </div>
-                    <div className="text-sm flex gap-4">
+                    <div className="flex gap-4">
                       <span>
-                        <span className="text-muted-foreground">AI 콘텐츠 검증:</span>{" "}
+                        <span className="text-muted-foreground">AI 제보내용 검증:</span>{" "}
                         {watch("useAiValidation") ? "사용" : "미사용"}
                       </span>
                       <span>
@@ -610,17 +956,8 @@ export default function ApplyPage() {
                     </div>
                   </div>
                 </div>
-                <div className="rounded-lg border p-4 space-y-2">
-                  <h3 className="font-semibold flex items-center gap-2">
-                    <User className="w-4 h-4" /> 담당자 정보
-                  </h3>
-                  <div className="grid grid-cols-2 gap-2 text-sm">
-                    <div><span className="text-muted-foreground">이름:</span> {watch("adminName")}</div>
-                    <div><span className="text-muted-foreground">이메일:</span> {watch("adminEmail")}</div>
-                    {watch("adminPhone") && <div><span className="text-muted-foreground">전화번호:</span> {watch("adminPhone")}</div>}
-                    <div><span className="text-muted-foreground">아이디:</span> {watch("adminUsername")}</div>
-                  </div>
-                </div>
+
+                {/* Plan */}
                 <div className="rounded-lg border p-4 space-y-2">
                   <h3 className="font-semibold flex items-center gap-2">
                     <CreditCard className="w-4 h-4" /> 요금제
@@ -630,8 +967,14 @@ export default function ApplyPage() {
                   </p>
                 </div>
               </div>
-              {errors.companyName && (
-                <p className="text-sm text-destructive">{errors.companyName.message}</p>
+              {Object.keys(errors).length > 0 && (
+                <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4 space-y-1">
+                  {Object.entries(errors).map(([field, error]) => (
+                    <p key={field} className="text-sm text-destructive">
+                      <span className="font-medium">[{FIELD_LABELS[field] || field}]</span> {(error as { message?: string })?.message}
+                    </p>
+                  ))}
+                </div>
               )}
             </div>
           )}

@@ -13,6 +13,11 @@ export interface AIResponse {
   text: string;
 }
 
+export interface AIFileRef {
+  uri: string;
+  mimeType: string;
+}
+
 export class AIClient {
   private provider: AIProvider;
   private apiKey: string;
@@ -44,6 +49,20 @@ export class AIClient {
     }
   }
 
+  /**
+   * Gemini File API의 파일 참조를 포함한 채팅 (RAG용).
+   * Gemini: fileData 파트로 전달, OpenAI/Claude: 파일 무시 (텍스트 폴백 사용).
+   */
+  async generateChatWithFiles(
+    messages: AIMessage[],
+    files: AIFileRef[]
+  ): Promise<AIResponse> {
+    if (this.provider === "gemini" && files.length > 0) {
+      return this.geminiChatWithFiles(messages, files);
+    }
+    return this.generateChat(messages);
+  }
+
   // ── Gemini ──────────────────────────────────────────────
 
   private async geminiGenerate(prompt: string): Promise<AIResponse> {
@@ -65,6 +84,49 @@ export class AIClient {
       model: "gemini-2.0-flash",
       contents,
     });
+    return { text: response.text || "" };
+  }
+
+  private async geminiChatWithFiles(
+    messages: AIMessage[],
+    files: AIFileRef[]
+  ): Promise<AIResponse> {
+    const genai = new GoogleGenAI({ apiKey: this.apiKey });
+
+    const systemMsg = messages.find((m) => m.role === "system");
+    const chatMsgs = messages.filter((m) => m.role !== "system");
+
+    // 첫 번째 user 메시지에 fileData 파트를 포함
+    const contents = chatMsgs.map((msg, idx) => {
+      const parts: Array<
+        | { text: string }
+        | { fileData: { fileUri: string; mimeType: string } }
+      > = [];
+
+      if (idx === 0 && msg.role === "user") {
+        for (const file of files) {
+          parts.push({
+            fileData: { fileUri: file.uri, mimeType: file.mimeType },
+          });
+        }
+      }
+
+      parts.push({ text: msg.content });
+
+      return {
+        role: msg.role === "assistant" ? "model" : "user",
+        parts,
+      };
+    });
+
+    const response = await genai.models.generateContent({
+      model: "gemini-2.0-flash",
+      contents,
+      config: {
+        ...(systemMsg ? { systemInstruction: systemMsg.content } : {}),
+      },
+    });
+
     return { text: response.text || "" };
   }
 

@@ -39,12 +39,12 @@
   "landing": {
     "hero": {
       "title": "기업 내부 신고, 안전하고 투명하게",
-      "subtitle": "모두의 제보채널은 익명 제보를 통해 기업의 투명성을 높이는 SaaS 플랫폼입니다",
+      "subtitle": "모두의 제보채널 Listen은 익명 제보를 통해 기업의 투명성을 높이는 SaaS 플랫폼입니다",
       "cta": "무료로 시작하기",
       "ctaSecondary": "자세히 알아보기"
     },
     "features": {
-      "title": "왜 모두의 제보채널인가?",
+      "title": "왜 모두의 제보채널 Listen인가?",
       "subtitle": "완전한 익명성과 편리한 관리를 동시에",
       "anonymous": {
         "title": "완전한 익명성",
@@ -88,17 +88,17 @@
     "faq": {
       "title": "자주 묻는 질문",
       "q1": "익명성은 어떻게 보장되나요?",
-      "a1": "제보자의 개인정보를 일절 수집하지 않으며, IP 주소는 SHA-256 해시 처리됩니다. 접수번호와 비밀번호만으로 제보를 확인할 수 있습니다.",
+      "a1": "제보자의 개인정보를 일절 수집하지 않습니다. 접수번호와 비밀번호만으로 제보를 확인할 수 있습니다.",
       "q2": "어떤 종류의 제보를 접수할 수 있나요?",
       "a2": "부정행위, 횡령, 직장 내 괴롭힘, 성희롱, 안전 위반 등 다양한 유형의 제보를 접수할 수 있으며, 기업별로 맞춤 설정이 가능합니다.",
       "q3": "무료 체험 기간은 얼마인가요?",
-      "a3": "신규 가입 시 1개월 무료 체험이 자동으로 제공됩니다. 체험 기간 중 언제든지 유료 플랜으로 전환할 수 있습니다.",
+      "a3": "신규 가입 시 1개월 무료 체험이 자동으로 제공됩니다. 체험 기간 종료 후 유료 플랜으로 전환할 수 있습니다.",
       "q4": "해외에서도 사용할 수 있나요?",
       "a4": "네, 글로벌 서비스로 한국어, 영어, 일본어, 중국어를 지원하며, IP 기반 자동 언어 전환 기능을 제공합니다."
     },
     "cta": {
       "title": "지금 바로 시작하세요",
-      "subtitle": "1개월 무료 체험으로 모두의 제보채널을 경험해보세요",
+      "subtitle": "1개월 무료 체험으로 모두의 제보채널 Listen을 경험해보세요",
       "button": "무료 체험 신청"
     }
   },
@@ -122,7 +122,7 @@
       "address": "주소",
       "department": "담당 부서",
       "reportTypes": "제보 유형 선택",
-      "welcomeMessage": "제보 페이지 안내 문구"
+      "welcomeMessage": "안내 메시지"
     },
     "step2": {
       "title": "담당자 정보",
@@ -161,11 +161,11 @@
       "reportTitle": "제보 제목",
       "reportContent": "제보 내용",
       "attachments": "첨부파일",
-      "attachmentHelp": "PDF, JPG, PNG, DOC, DOCX, XLS, XLSX (개별 10MB, 총 50MB)",
+      "attachmentHelp": "PDF, JPG, PNG, TXT, DOC, DOCX, XLS, XLSX (파일당 최대 10MB, 총 50MB 이하)",
       "password": "확인 비밀번호",
       "passwordConfirm": "비밀번호 확인",
       "passwordHelp": "제보 확인 시 필요한 비밀번호입니다 (8자리 이상)",
-      "aiValidate": "AI 검증",
+      "aiValidate": "6하 원칙 검증",
       "aiValidating": "AI가 검증 중입니다...",
       "submitReport": "제보 제출",
       "submitting": "제출 중..."
@@ -295,6 +295,9 @@
       "activate": "활성화",
       "deactivate": "비활성화"
     },
+    "reports": {
+      "title": "제보 관리"
+    },
     "codes": {
       "title": "코드 관리",
       "reportTypeCodes": "제보 유형 코드",
@@ -325,11 +328,11 @@
     }
   },
   "footer": {
-    "company": "모두의 제보채널",
+    "company": "모두의 제보채널 Listen",
     "description": "기업의 투명성을 높이는 SaaS 익명 제보 플랫폼",
     "terms": "이용약관",
     "privacy": "개인정보 처리방침",
     "contact": "문의하기",
-    "copyright": "© 2026 모두의 제보채널. All rights reserved."
+    "copyright": "© 2026 모두의 제보채널 Listen. All rights reserved."
   }
 }

@@ -215,9 +215,10 @@ interface RichTextEditorProps {
   content: string;
   onChange: (html: string) => void;
   placeholder?: string;
+  minHeight?: string;
 }
 
-export function RichTextEditor({ content, onChange, placeholder }: RichTextEditorProps) {
+export function RichTextEditor({ content, onChange, placeholder, minHeight = "80px" }: RichTextEditorProps) {
   const editor = useEditor({
     immediatelyRender: false,
     extensions: [
@@ -240,7 +241,8 @@ export function RichTextEditor({ content, onChange, placeholder }: RichTextEdito
     content,
     editorProps: {
       attributes: {
-        class: "prose prose-sm max-w-none px-3 py-2 min-h-[80px] focus:outline-none text-sm",
+        class: "prose prose-sm max-w-none px-3 py-2 focus:outline-none text-sm",
+        style: `min-height: ${minHeight}`,
       },
     },
     onUpdate: ({ editor: e }) => {

@@ -1,307 +1,318 @@
 {
   "common": {
-    "submit": "Submit",
-    "cancel": "Cancel",
-    "save": "Save",
-    "delete": "Delete",
-    "edit": "Edit",
-    "close": "Close",
-    "confirm": "Confirm",
-    "back": "Back",
-    "next": "Next",
-    "previous": "Previous",
-    "search": "Search",
-    "filter": "Filter",
-    "loading": "Loading...",
-    "error": "An error occurred",
-    "success": "Success",
-    "required": "Required",
-    "optional": "Optional",
-    "noData": "No data",
-    "viewMore": "View more",
-    "download": "Download",
-    "upload": "Upload",
-    "copy": "Copy",
-    "copied": "Copied",
-    "login": "Login",
-    "logout": "Logout",
-    "signUp": "Sign up"
+    "submit": "送信",
+    "cancel": "キャンセル",
+    "save": "保存",
+    "delete": "削除",
+    "edit": "編集",
+    "close": "閉じる",
+    "confirm": "確認",
+    "back": "戻る",
+    "next": "次へ",
+    "previous": "前へ",
+    "search": "検索",
+    "filter": "フィルター",
+    "loading": "読み込み中...",
+    "error": "エラーが発生しました",
+    "success": "成功",
+    "required": "必須",
+    "optional": "任意",
+    "noData": "データがありません",
+    "viewMore": "もっと見る",
+    "download": "ダウンロード",
+    "upload": "アップロード",
+    "copy": "コピー",
+    "copied": "コピーしました",
+    "login": "ログイン",
+    "logout": "ログアウト",
+    "signUp": "新規登録"
   },
   "nav": {
-    "home": "Home",
-    "features": "Features",
-    "pricing": "Pricing",
-    "apply": "Apply",
-    "contact": "Contact",
-    "companyLogin": "Company Login",
-    "adminLogin": "Admin"
+    "home": "ホーム",
+    "features": "機能",
+    "pricing": "料金",
+    "apply": "申請",
+    "contact": "お問い合わせ",
+    "companyLogin": "企業ログイン",
+    "adminLogin": "管理者"
   },
   "landing": {
     "hero": {
-      "title": "Safe and Transparent Internal Reporting",
-      "subtitle": "An anonymous whistleblowing SaaS platform that enhances organizational transparency",
-      "cta": "Start Free Trial",
-      "ctaSecondary": "Learn More"
+      "title": "企業内部通報を安全かつ透明に",
+      "subtitle": "匿名通報を通じて企業の透明性を高めるSaaSプラットフォーム",
+      "cta": "無料で始める",
+      "ctaSecondary": "詳しく見る"
     },
     "features": {
-      "title": "Why Choose Us?",
-      "subtitle": "Complete anonymity with convenient management",
+      "title": "なぜ当サービスを選ぶのか？",
+      "subtitle": "完全な匿名性と便利な管理を両立",
       "anonymous": {
-        "title": "Complete Anonymity",
-        "description": "No personal information collected. IP addresses are hashed for protection"
+        "title": "完全な匿名性",
+        "description": "通報者の身元情報を一切収集せず、IPアドレスもハッシュ処理で保護します"
       },
       "dedicated": {
-        "title": "Dedicated Channels",
-        "description": "Each organization gets a unique URL for their independent reporting channel"
+        "title": "企業専用チャンネル",
+        "description": "企業ごとの固有URLで独立した通報チャンネルを提供します"
       },
       "ai": {
-        "title": "AI Content Validation",
-        "description": "Google Gemini AI validates report completeness using the 5W1H framework"
+        "title": "AIコンテンツ検証",
+        "description": "Google Gemini AIで通報内容の完成度（5W1H）を事前検証します"
       },
       "multilang": {
-        "title": "Multi-language Support",
-        "description": "Supports Korean, English, Japanese, and Chinese with automatic IP-based switching"
+        "title": "多言語対応",
+        "description": "日本語、韓国語、英語、中国語に対応し、IPベースで自動言語切替"
       },
       "realtime": {
-        "title": "Real-time Communication",
-        "description": "Secure comment-based communication between reporters and administrators"
+        "title": "リアルタイムコミュニケーション",
+        "description": "匿名通報者と担当者間の安全なコメントベースの対話"
       },
       "dashboard": {
-        "title": "Analytics Dashboard",
-        "description": "Visualized dashboard to monitor report status at a glance"
+        "title": "統計ダッシュボード",
+        "description": "通報状況を一目で把握できる可視化ダッシュボード"
       }
     },
     "pricing": {
-      "title": "Simple Pricing",
-      "subtitle": "Try free for 1 month, then choose your plan",
-      "freeTrial": "Free Trial",
-      "monthly": "Monthly",
-      "yearly": "Yearly",
-      "perMonth": "/mo",
-      "perYear": "/yr",
-      "popular": "Popular",
-      "discount": "2 months free",
-      "startFreeTrial": "Start Free Trial",
-      "subscribe": "Subscribe",
-      "taxExcluded": "Tax excluded"
+      "title": "合理的な料金プラン",
+      "subtitle": "1ヶ月無料体験後にお選びください",
+      "freeTrial": "無料体験",
+      "monthly": "月額プラン",
+      "yearly": "年額プラン",
+      "perMonth": "/月",
+      "perYear": "/年",
+      "popular": "人気",
+      "discount": "2ヶ月割引",
+      "startFreeTrial": "無料体験を始める",
+      "subscribe": "購読する",
+      "taxExcluded": "税別"
     },
     "faq": {
-      "title": "Frequently Asked Questions",
-      "q1": "How is anonymity guaranteed?",
-      "a1": "We do not collect any personal information. IP addresses are processed with SHA-256 hashing. Reports can only be checked using the report number and password.",
-      "q2": "What types of reports can be submitted?",
-      "a2": "Various types including fraud, embezzlement, workplace harassment, sexual harassment, safety violations, and more. Each organization can customize their report types.",
-      "q3": "How long is the free trial?",
-      "a3": "A 1-month free trial is automatically provided upon registration. You can switch to a paid plan at any time during the trial.",
-      "q4": "Can it be used internationally?",
-      "a4": "Yes, we support Korean, English, Japanese, and Chinese with automatic IP-based language detection."
+      "title": "よくある質問",
+      "q1": "匿名性はどのように保証されますか？",
+      "a1": "通報者の個人情報を一切収集せず、IPアドレスはSHA-256ハッシュ処理されます。受付番号とパスワードのみで通報を確認できます。",
+      "q2": "どのような種類の通報を受け付けられますか？",
+      "a2": "不正行為、横領、職場ハラスメント、セクシュアルハラスメント、安全違反など様々な種類の通報を受け付けており、企業ごとにカスタマイズ可能です。",
+      "q3": "無料体験期間はどのくらいですか？",
+      "a3": "新規登録時に1ヶ月の無料体験が自動的に提供されます。体験期間中いつでも有料プランに切り替え可能です。",
+      "q4": "海外でも利用できますか？",
+      "a4": "はい、グローバルサービスとして日本語、韓国語、英語、中国語に対応し、IPベースの自動言語切替機能を提供しています。"
     },
     "cta": {
-      "title": "Get Started Today",
-      "subtitle": "Experience our platform with a free 1-month trial",
-      "button": "Start Free Trial"
+      "title": "今すぐ始めましょう",
+      "subtitle": "1ヶ月無料体験で匿名通報チャンネルを体験してください",
+      "button": "無料体験を申し込む"
     }
   },
   "apply": {
-    "title": "Apply for Anonymous Reporting Channel",
-    "subtitle": "Set up your organization's dedicated reporting channel with simple information",
+    "title": "匿名通報チャンネル申請",
+    "description": "簡単な情報入力で企業専用通報チャンネルを開設できます",
+    "submit": "申請する",
+    "submitted": {
+      "title": "申請を受け付けました",
+      "description": "管理者の審査後、承認されましたらメールでご案内いたします",
+      "applicationId": "申請番号",
+      "backHome": "ホームに戻る"
+    },
     "step1": {
-      "title": "Company Information",
-      "companyName": "Company Name",
-      "businessNumber": "Business Registration Number",
-      "industry": "Industry",
-      "employeeCount": "Number of Employees",
-      "address": "Address",
-      "department": "Department",
-      "reportTypes": "Report Types",
-      "welcomeMessage": "Welcome Message",
-      "locale": "Language",
-      "aiValidation": "Use AI Report Validation",
-      "chatbot": "Use Chatbot"
+      "title": "企業情報",
+      "description": "企業の基本情報を入力してください",
+      "companyName": "会社名",
+      "businessNumber": "法人番号",
+      "industry": "業種",
+      "employeeCount": "従業員数",
+      "address": "住所",
+      "department": "担当部署",
+      "reportTypes": "通報種類の選択",
+      "welcomeMessage": "通報ページ案内文"
     },
     "step2": {
-      "title": "Administrator Information",
-      "adminName": "Name",
-      "adminEmail": "Email",
-      "adminPhone": "Phone",
-      "adminUsername": "Login ID",
-      "adminPassword": "Password",
-      "emailVerification": "Email Verification"
+      "title": "担当者情報",
+      "description": "管理者アカウントとして使用する情報を入力してください",
+      "name": "担当者名",
+      "email": "メールアドレス",
+      "phone": "連絡先",
+      "username": "ログインID",
+      "password": "パスワード"
     },
     "step3": {
-      "title": "Select Plan",
-      "selectPlan": "Choose your preferred plan"
+      "title": "料金プラン選択",
+      "description": "ご希望の料金プランを選択してください"
     },
     "step4": {
-      "title": "Terms Agreement",
-      "termsAgreement": "I agree to the Terms of Service",
-      "privacyAgreement": "I agree to the Privacy Policy"
+      "title": "利用規約同意",
+      "description": "サービス利用のため規約に同意してください",
+      "termsLabel": "利用規約に同意する",
+      "privacyLabel": "プライバシーポリシーに同意する"
     },
     "step5": {
-      "title": "Application Complete",
-      "successMessage": "Your application has been submitted",
-      "reviewMessage": "We will notify you by email once approved",
-      "goHome": "Return to Home"
+      "title": "確認・送信",
+      "description": "入力内容を確認して申請してください"
     }
   },
   "report": {
     "main": {
-      "title": "Anonymous Reporting Channel",
-      "submitButton": "Submit Report",
-      "checkButton": "Check Report Status",
-      "description": "You can safely submit an anonymous report through this channel"
+      "title": "匿名通報チャンネル",
+      "submitButton": "通報する",
+      "checkButton": "通報を確認する",
+      "description": "このチャンネルを通じて安全に匿名で通報できます"
     },
     "submit": {
-      "title": "Submit Report",
-      "reportType": "Report Type",
-      "reportTitle": "Title",
-      "reportContent": "Content",
-      "attachments": "Attachments",
-      "attachmentHelp": "PDF, JPG, PNG, DOC, DOCX, XLS, XLSX (10MB each, 50MB total)",
-      "password": "Verification Password",
-      "passwordConfirm": "Confirm Password",
-      "passwordHelp": "This password is needed to check your report later (min 8 characters)",
-      "aiValidate": "AI Validate",
-      "aiValidating": "AI is validating...",
-      "submitReport": "Submit Report",
-      "submitting": "Submitting..."
+      "title": "通報受付",
+      "reportType": "通報種類",
+      "reportTitle": "通報タイトル",
+      "reportContent": "通報内容",
+      "attachments": "添付ファイル",
+      "attachmentHelp": "PDF、JPG、PNG、TXT、DOC、DOCX、XLS、XLSX（1ファイル最大10MB、合計50MB以下）",
+      "password": "確認パスワード",
+      "passwordConfirm": "パスワード確認",
+      "passwordHelp": "通報確認時に必要なパスワードです（8文字以上）",
+      "aiValidate": "5W1H検証",
+      "aiValidating": "AIが検証中です...",
+      "submitReport": "通報を送信",
+      "submitting": "送信中..."
     },
     "success": {
-      "title": "Report Submitted Successfully",
-      "reportNumber": "Report Number",
-      "warning": "Please save your report number!",
-      "warningDetail": "You need both the report number and password to check your report. They cannot be recovered if lost.",
-      "goBack": "Go Back"
+      "title": "通報を受け付けました",
+      "reportNumber": "受付番号",
+      "warning": "受付番号を必ず記録してください！",
+      "warningDetail": "受付番号とパスワードは通報確認時に必要です。紛失した場合は復旧できません。",
+      "goBack": "戻る"
     },
     "check": {
-      "title": "Check Report",
-      "reportNumber": "Report Number",
-      "password": "Password",
-      "checkButton": "Check",
-      "notFound": "No matching report found"
+      "title": "通報確認",
+      "reportNumber": "受付番号",
+      "password": "パスワード",
+      "checkButton": "確認する",
+      "notFound": "該当する通報が見つかりません"
     },
     "detail": {
-      "reportInfo": "Report Information",
-      "reportNumber": "Report Number",
-      "reportDate": "Date Submitted",
-      "reportType": "Report Type",
-      "status": "Status",
-      "title": "Title",
-      "content": "Content",
-      "attachments": "Attachments",
-      "comments": "Communication",
-      "writeComment": "Write Comment",
-      "editReport": "Edit Report",
-      "editHistory": "Edit History"
+      "reportInfo": "通報情報",
+      "reportNumber": "受付番号",
+      "reportDate": "受付日時",
+      "reportType": "通報種類",
+      "status": "処理状態",
+      "title": "タイトル",
+      "content": "内容",
+      "attachments": "添付ファイル",
+      "comments": "コミュニケーション",
+      "writeComment": "コメント作成",
+      "editReport": "通報を編集",
+      "editHistory": "編集履歴"
     },
     "ai": {
-      "validationResult": "AI Validation Result",
-      "score": "Completeness Score",
-      "missingElements": "Missing Elements",
-      "suggestions": "Suggestions",
-      "who": "Who",
-      "what": "What",
-      "when": "When",
-      "where": "Where",
-      "why": "Why",
-      "how": "How"
+      "validationResult": "AI検証結果",
+      "score": "完成度スコア",
+      "missingElements": "不足要素",
+      "suggestions": "改善提案",
+      "who": "誰が (Who)",
+      "what": "何を (What)",
+      "when": "いつ (When)",
+      "where": "どこで (Where)",
+      "why": "なぜ (Why)",
+      "how": "どのように (How)"
     }
   },
   "company": {
     "login": {
-      "title": "Company Admin Login",
-      "username": "Username",
-      "password": "Password"
+      "title": "企業管理者ログイン",
+      "username": "ユーザーID",
+      "password": "パスワード"
     },
     "dashboard": {
-      "title": "Dashboard",
-      "totalReports": "Total Reports",
-      "pendingReports": "Pending",
-      "inProgress": "In Progress",
-      "resolved": "Resolved",
-      "recentReports": "Recent Reports",
-      "reportsByType": "Reports by Type",
-      "reportsByStatus": "Reports by Status",
-      "reportsTrend": "Reports Trend"
+      "title": "ダッシュボード",
+      "description": "通報状況を一目で確認できます",
+      "totalReports": "総通報数",
+      "pendingReports": "待機中",
+      "inProgress": "処理中",
+      "resolved": "完了",
+      "recentReports": "最近の通報",
+      "reportsByType": "種類別通報",
+      "reportsByStatus": "状態別通報",
+      "reportsTrend": "通報推移"
     },
     "reports": {
-      "title": "Report Management",
-      "filterByType": "By Type",
-      "filterByStatus": "By Status",
-      "filterByDate": "Date Range",
-      "searchPlaceholder": "Search by report number or title",
-      "changeStatus": "Change Status",
-      "addComment": "Add Comment",
-      "internalNote": "Internal Note",
-      "timeline": "Activity Timeline",
-      "aiPolicyCheck": "AI Policy Check"
+      "title": "通報管理",
+      "description": "受け付けた通報を管理・処理します",
+      "filterByType": "種類別",
+      "filterByStatus": "状態別",
+      "filterByDate": "日付範囲",
+      "searchPlaceholder": "受付番号または通報名で検索",
+      "changeStatus": "状態変更",
+      "addComment": "コメント作成",
+      "internalNote": "内部メモ",
+      "timeline": "活動タイムライン",
+      "aiPolicyCheck": "AIポリシー検証"
     },
     "settings": {
-      "title": "Company Settings",
-      "companyInfo": "Company Information",
-      "reportTypes": "Report Types",
-      "notifications": "Notifications",
-      "branding": "Branding"
+      "title": "会社設定",
+      "description": "会社情報および通報チャンネル設定を管理します",
+      "companyInfo": "会社情報",
+      "reportTypes": "通報種類管理",
+      "notifications": "通知設定",
+      "branding": "ブランディング"
     },
     "subscription": {
-      "title": "Subscription",
-      "currentPlan": "Current Plan",
-      "expiryDate": "Expiry Date",
-      "changePlan": "Change Plan",
-      "paymentHistory": "Payment History"
+      "title": "サブスクリプション管理",
+      "description": "サブスクリプション状態と決済情報を確認します",
+      "currentPlan": "現在のプラン",
+      "expiryDate": "有効期限",
+      "changePlan": "プラン変更",
+      "paymentHistory": "決済履歴"
     }
   },
   "admin": {
     "login": {
-      "title": "Platform Admin Login"
+      "title": "プラットフォーム管理者ログイン"
     },
     "dashboard": {
-      "title": "Platform Management",
-      "totalCompanies": "Total Companies",
-      "activeCompanies": "Active Companies",
-      "totalReports": "Total Reports",
-      "totalUsers": "Total Users"
+      "title": "プラットフォーム管理",
+      "totalCompanies": "全企業",
+      "activeCompanies": "活動中の企業",
+      "totalReports": "全通報",
+      "totalUsers": "全ユーザー"
     },
     "users": {
-      "title": "User Management",
-      "addUser": "Add User",
-      "editUser": "Edit User",
-      "deleteUser": "Delete User",
-      "username": "Username",
-      "name": "Name",
-      "email": "Email",
-      "role": "Role",
-      "company": "Company",
-      "status": "Status",
-      "validPeriod": "Valid Period"
+      "title": "ユーザー管理",
+      "addUser": "ユーザー登録",
+      "editUser": "ユーザー編集",
+      "deleteUser": "ユーザー削除",
+      "username": "ユーザーID",
+      "name": "名前",
+      "email": "メールアドレス",
+      "role": "役割",
+      "company": "所属企業",
+      "status": "状態",
+      "validPeriod": "有効期間"
     },
     "companies": {
-      "title": "Company Management",
-      "addCompany": "Add Company",
-      "companyCode": "Company Code",
-      "companyName": "Company Name",
-      "managers": "Managers",
-      "servicePeriod": "Service Period",
-      "reportUrl": "Report URL",
-      "copyUrl": "Copy URL",
-      "activate": "Activate",
-      "deactivate": "Deactivate"
+      "title": "企業管理",
+      "addCompany": "企業登録",
+      "companyCode": "企業コード",
+      "companyName": "企業名",
+      "managers": "担当者",
+      "servicePeriod": "サービス期間",
+      "reportUrl": "通報URL",
+      "copyUrl": "URLコピー",
+      "activate": "有効化",
+      "deactivate": "無効化"
+    },
+    "reports": {
+      "title": "通報管理"
     },
     "codes": {
-      "title": "Code Management",
-      "reportTypeCodes": "Report Type Codes",
-      "addCode": "Add Code",
-      "codeName": "Type Name",
-      "description": "Description",
-      "isActive": "Active"
+      "title": "コード管理",
+      "reportTypeCodes": "通報種類コード",
+      "addCode": "コード追加",
+      "codeName": "種類名",
+      "description": "説明",
+      "isActive": "使用状態"
     },
     "subscriptions": {
-      "title": "Subscription Management",
-      "company": "Company",
-      "plan": "Plan",
-      "status": "Status",
-      "startDate": "Start Date",
-      "endDate": "End Date"
+      "title": "サブスクリプション管理",
+      "company": "企業",
+      "plan": "料金プラン",
+      "status": "状態",
+      "startDate": "開始日",
+      "endDate": "終了日"
     },
     "applications": {
       "title": "申請管理",
@@ -309,19 +320,19 @@
       "approved": "承認済み",
       "rejected": "却下",
       "approve": "承認",
-      "reject": "却下",
-      "reviewNotes": "レビューノート"
+      "reject": "却下する",
+      "reviewNotes": "レビューメモ"
     },
     "settings": {
       "title": "設定"
     }
   },
   "footer": {
-    "company": "Everyone's Report Channel",
-    "description": "Anonymous whistleblowing SaaS platform for organizational transparency",
-    "terms": "Terms of Service",
-    "privacy": "Privacy Policy",
-    "contact": "Contact Us",
-    "copyright": "© 2026 Everyone's Report Channel. All rights reserved."
+    "company": "匿名通報チャンネル",
+    "description": "企業の透明性を高めるSaaS匿名通報プラットフォーム",
+    "terms": "利用規約",
+    "privacy": "プライバシーポリシー",
+    "contact": "お問い合わせ",
+    "copyright": "© 2026 匿名通報チャンネル All rights reserved."
   }
 }

@@ -39,7 +39,7 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({ error: "key and value are required" }, { status: 400 });
   }
 
-  const allowedKeys = ["login_security", "email_settings", "sms_settings"];
+  const allowedKeys = ["login_security", "email_settings", "sms_settings", "role_permissions"];
   if (!allowedKeys.includes(key)) {
     return NextResponse.json({ error: "Invalid setting key" }, { status: 400 });
   }

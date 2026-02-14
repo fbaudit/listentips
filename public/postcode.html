@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <title>주소 검색</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+    #loading { display: flex; align-items: center; justify-content: center; height: 100vh; color: #666; font-size: 14px; }
+    #postcode-container { width: 100%; height: 100%; }
+  </style>
+</head>
+<body>
+  <div id="loading">주소 검색을 불러오는 중...</div>
+  <div id="postcode-container"></div>
+  <script src="https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
+  <script>
+    document.getElementById('loading').style.display = 'none';
+    new daum.Postcode({
+      oncomplete: function(data) {
+        if (window.opener) {
+          window.opener.postMessage({
+            type: 'DAUM_POSTCODE_RESULT',
+            roadAddress: data.roadAddress,
+            zonecode: data.zonecode
+          }, '*');
+        }
+        window.close();
+      },
+      onclose: function() {
+        window.close();
+      },
+      width: '100%',
+      height: '100%'
+    }).embed(document.getElementById('postcode-container'));
+  </script>
+</body>
+</html>

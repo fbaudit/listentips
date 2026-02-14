@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
 
   let query = supabase
     .from("users")
-    .select("id, email, username, name, phone, role, company_id, is_active, created_at, valid_from, valid_to, companies(company_name)", {
+    .select("id, email, username, name, phone, mobile, country, role, company_id, is_active, two_factor_enabled, valid_from, valid_to, last_login_at, created_at, updated_at, companies(name, company_code)", {
       count: "exact",
     })
     .order("created_at", { ascending: false })
@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.json();
-  const { email, username, password, name, phone, role, companyId } = body;
+  const { email, username, password, name, phone, mobile, country, role, companyId } = body;
 
   if (!email || !username || !password || !name || !role) {
     return NextResponse.json({ error: "필수 항목을 입력해주세요" }, { status: 400 });
@@ -87,6 +87,8 @@ export async function POST(request: NextRequest) {
       password_hash: passwordHash,
       name,
       phone: phone || null,
+      mobile: mobile || null,
+      country: country || "KR",
       role,
       company_id: companyId || null,
       is_active: true,

@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "모두의 제보채널 - 익명 제보 SaaS 플랫폼",
+  title: "모두의 제보채널 Listen - 익명 제보 SaaS 플랫폼",
   description: "기업의 투명성을 높이는 구독형 외부 익명 제보채널 플랫폼",
 };
 

@@ -44,7 +44,7 @@ export default function AdminDashboardPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">플랫폼 대시보드</h1>
-        <p className="text-muted-foreground">모두의 제보채널 전체 현황</p>
+        <p className="text-muted-foreground">모두의 제보채널 Listen 전체 현황</p>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">

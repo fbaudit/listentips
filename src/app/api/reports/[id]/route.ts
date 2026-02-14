@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { verifyReportAccess } from "@/lib/auth/report-access";
+import { getCompanyDataKey, encryptWithKey, decryptWithKey, isEncrypted } from "@/lib/utils/data-encryption";
+import { notifyCompanyAdmins } from "@/lib/utils/notify-company-admins";
 
 // Check if the id looks like a UUID
 function isUUID(str: string): boolean {
@@ -11,14 +14,20 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const supabase = createAdminClient();
 
+  // Verify access (reporter token, company admin, or super admin)
+  const access = await verifyReportAccess(request, id);
+  if (!access.authorized) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const supabase = createAdminClient();
   const column = isUUID(id) ? "id" : "report_number";
 
   const { data: report, error } = await supabase
     .from("reports")
     .select(`
-      id, report_number, title, content, created_at, updated_at,
+      id, report_number, title, content, created_at, updated_at, company_id,
       who_field, what_field, when_field, where_field, why_field, how_field,
       ai_validation_score, view_count,
       report_type:report_types(id, type_name, type_name_en),
@@ -32,7 +41,36 @@ export async function GET(
     return NextResponse.json({ error: "Report not found" }, { status: 404 });
   }
 
-  return NextResponse.json({ report });
+  // Decrypt title and content if encrypted
+  const reportData = report as Record<string, unknown>;
+  const encKeyHeader = request.headers.get("x-encryption-key");
+
+  // Reporter: auto-decrypt; Admin: must provide key via header
+  const dataKey = access.role === "reporter"
+    ? (encKeyHeader || await getCompanyDataKey(access.companyId))
+    : encKeyHeader;
+
+  if (dataKey) {
+    if (isEncrypted(reportData.title as string)) {
+      try {
+        reportData.title = decryptWithKey(reportData.title as string, dataKey);
+      } catch {
+        reportData.title = "[복호화 실패]";
+      }
+    }
+    if (isEncrypted(reportData.content as string)) {
+      try {
+        reportData.content = decryptWithKey(reportData.content as string, dataKey);
+      } catch {
+        reportData.content = "[복호화 실패]";
+      }
+    }
+  } else {
+    if (isEncrypted(reportData.title as string)) reportData.title = "[암호화됨]";
+    if (isEncrypted(reportData.content as string)) reportData.content = "[암호화됨]";
+  }
+
+  return NextResponse.json({ report: reportData });
 }
 
 export async function PATCH(
@@ -40,6 +78,13 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
+
+  // Verify access
+  const access = await verifyReportAccess(request, id);
+  if (!access.authorized) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const body = await request.json();
   const supabase = createAdminClient();
 
@@ -59,12 +104,17 @@ export async function PATCH(
   const updateData: Record<string, unknown> = {};
   const editHistory: { field_name: string; old_value: string; new_value: string }[] = [];
 
+  // Get encryption key for re-encrypting updated fields
+  const dataKey = await getCompanyDataKey(current.company_id);
+
   if (body.title && body.title !== current.title) {
-    updateData.title = body.title;
+    const encTitle = dataKey ? encryptWithKey(body.title, dataKey) : body.title;
+    updateData.title = encTitle;
     editHistory.push({ field_name: "title", old_value: current.title || "", new_value: body.title });
   }
   if (body.content && body.content !== current.content) {
-    updateData.content = body.content;
+    const encContent = dataKey ? encryptWithKey(body.content, dataKey) : body.content;
+    updateData.content = encContent;
     editHistory.push({ field_name: "content", old_value: current.content || "", new_value: body.content });
   }
 
@@ -110,14 +160,46 @@ export async function PATCH(
     );
   }
 
+  // Notify company admins when reporter modifies title/content
+  const reporterContentChanges = editHistory.filter(
+    (h) => h.field_name === "title" || h.field_name === "content"
+  );
+  if (access.role === "reporter" && reporterContentChanges.length > 0) {
+    const { data: reportInfo } = await supabase
+      .from("reports")
+      .select("report_number")
+      .eq("id", reportId)
+      .single();
+
+    if (reportInfo) {
+      const origin = request.nextUrl.origin;
+      notifyCompanyAdmins({
+        companyId: current.company_id,
+        reportId,
+        reportNumber: reportInfo.report_number,
+        eventType: "report_modified",
+        title: "제보 내용이 수정되었습니다",
+        message: `제보자가 제보 내용을 수정했습니다. (${reporterContentChanges.map((h) => h.field_name === "title" ? "제목" : "내용").join(", ")} 변경)`,
+        origin,
+      }).catch((err) => console.error("Notification error:", err));
+    }
+  }
+
   return NextResponse.json({ message: "Updated" });
 }
 
 export async function DELETE(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
+
+  // Verify access
+  const access = await verifyReportAccess(request, id);
+  if (!access.authorized) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const supabase = createAdminClient();
 
   const column = isUUID(id) ? "id" : "report_number";

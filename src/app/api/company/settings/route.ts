@@ -46,12 +46,47 @@ export async function PATCH(request: NextRequest) {
     "description", "channel_name", "welcome_message", "report_guide_message",
     "primary_color", "use_ai_validation", "use_chatbot", "preferred_locale",
     "content_blocks", "ai_provider",
+    "block_foreign_ip", "allowed_countries", "ip_blocklist",
+    "rate_limit_enabled", "rate_limit_max_reports", "rate_limit_window_minutes",
+    "min_password_length", "require_special_chars",
+    "two_factor_enabled",
   ];
 
   const updateData: Record<string, unknown> = {};
   for (const field of allowedFields) {
     if (body[field] !== undefined) {
       updateData[field] = body[field];
+    }
+  }
+
+  // Validate security fields
+  if (body.rate_limit_max_reports !== undefined) {
+    const val = Number(body.rate_limit_max_reports);
+    if (isNaN(val) || val < 1 || val > 100) {
+      return NextResponse.json({ error: "Invalid rate limit value" }, { status: 400 });
+    }
+  }
+  if (body.rate_limit_window_minutes !== undefined) {
+    const val = Number(body.rate_limit_window_minutes);
+    if (isNaN(val) || val < 1 || val > 1440) {
+      return NextResponse.json({ error: "Invalid rate limit window" }, { status: 400 });
+    }
+  }
+  if (body.min_password_length !== undefined) {
+    const val = Number(body.min_password_length);
+    if (isNaN(val) || val < 6 || val > 32) {
+      return NextResponse.json({ error: "Invalid password length" }, { status: 400 });
+    }
+  }
+  if (body.ip_blocklist !== undefined) {
+    if (!Array.isArray(body.ip_blocklist)) {
+      return NextResponse.json({ error: "ip_blocklist must be an array" }, { status: 400 });
+    }
+    const cidrRegex = /^(\d{1,3}\.){3}\d{1,3}(\/\d{1,2})?$/;
+    for (const entry of body.ip_blocklist) {
+      if (!cidrRegex.test(entry)) {
+        return NextResponse.json({ error: `Invalid IP/CIDR: ${entry}` }, { status: 400 });
+      }
     }
   }
 
@@ -74,7 +109,8 @@ export async function PATCH(request: NextRequest) {
     .eq("id", session.user.companyId);
 
   if (error) {
-    return NextResponse.json({ error: "Update failed" }, { status: 500 });
+    console.error("Settings update error:", error);
+    return NextResponse.json({ error: `Update failed: ${error.message}` }, { status: 500 });
   }
 
   return NextResponse.json({ message: "Updated" });

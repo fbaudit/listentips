@@ -3,6 +3,9 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { auth } from "@/lib/auth/auth";
 import { hashPassword } from "@/lib/utils/password";
 import { generateCode } from "@/lib/utils/generate-code";
+import { getCompanyDataKey, encryptWithKey, decryptWithKey, isEncrypted } from "@/lib/utils/data-encryption";
+import { checkSecurity } from "@/lib/utils/security-check";
+import { notifyCompanyAdmins } from "@/lib/utils/notify-company-admins";
 import crypto from "crypto";
 
 export async function GET(request: NextRequest) {
@@ -43,14 +46,31 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "제보 조회 오류" }, { status: 500 });
   }
 
+  // Admin must provide encryption key via header to decrypt
+  // (server auto-decrypt is only for reporter access)
+  const dataKey: string | null = request.headers.get("x-encryption-key") || null;
+
   // Map to expected format
   const reports = (data || []).map((r: Record<string, unknown>) => {
     const reportType = r.report_types as { type_name: string } | null;
     const reportStatus = r.report_statuses as { status_name: string; color_code: string } | null;
+    let title = r.title as string;
+
+    // Decrypt title if encrypted
+    if (dataKey && isEncrypted(title)) {
+      try {
+        title = decryptWithKey(title, dataKey);
+      } catch {
+        title = "[복호화 실패]";
+      }
+    } else if (!dataKey && isEncrypted(title)) {
+      title = "[암호화됨]";
+    }
+
     return {
       id: r.id,
       report_number: r.report_number,
-      title: r.title,
+      title,
       created_at: r.created_at,
       status: reportStatus ? { name: reportStatus.status_name, color: reportStatus.color_code } : null,
       report_type: reportType ? { name: reportType.type_name } : null,
@@ -123,22 +143,40 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "제목 또는 내용이 너무 짧습니다" }, { status: 400 });
     }
 
-    if (password.length < 8) {
-      return NextResponse.json({ error: "비밀번호는 최소 8자리입니다" }, { status: 400 });
-    }
-
     const supabase = createAdminClient();
 
     // Verify company exists and is active
     const { data: company } = await supabase
       .from("companies")
-      .select("id, is_active")
+      .select("id, is_active, block_foreign_ip, allowed_countries, ip_blocklist, rate_limit_enabled, rate_limit_max_reports, rate_limit_window_minutes, min_password_length, require_special_chars")
       .eq("id", companyId)
       .eq("is_active", true)
       .single();
 
     if (!company) {
       return NextResponse.json({ error: "유효하지 않은 기업입니다" }, { status: 404 });
+    }
+
+    // Security checks (IP country, blocklist, rate limit)
+    const securityResult = await checkSecurity(request, companyId, {
+      block_foreign_ip: company.block_foreign_ip,
+      allowed_countries: company.allowed_countries || ["KR"],
+      ip_blocklist: company.ip_blocklist || [],
+      rate_limit_enabled: company.rate_limit_enabled,
+      rate_limit_max_reports: company.rate_limit_max_reports,
+      rate_limit_window_minutes: company.rate_limit_window_minutes,
+    });
+    if (!securityResult.allowed) {
+      return NextResponse.json({ error: securityResult.reason }, { status: 403 });
+    }
+
+    // Password policy enforcement
+    const minLen = company.min_password_length || 8;
+    if (password.length < minLen) {
+      return NextResponse.json({ error: `비밀번호는 최소 ${minLen}자리입니다` }, { status: 400 });
+    }
+    if (company.require_special_chars && !/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) {
+      return NextResponse.json({ error: "비밀번호에 특수문자를 포함해야 합니다" }, { status: 400 });
     }
 
     // Get default status
@@ -172,6 +210,15 @@ export async function POST(request: NextRequest) {
     // Get locale from header
     const locale = request.headers.get("accept-language")?.split(",")[0]?.split("-")[0] || "ko";
 
+    // Encrypt title and content if company has encryption key
+    let encTitle = title;
+    let encContent = content;
+    const dataKey = await getCompanyDataKey(companyId);
+    if (dataKey) {
+      encTitle = encryptWithKey(title, dataKey);
+      encContent = encryptWithKey(content, dataKey);
+    }
+
     // Insert report
     const { data: report, error: insertError } = await supabase
       .from("reports")
@@ -181,8 +228,8 @@ export async function POST(request: NextRequest) {
         status_id: defaultStatus?.id || null,
         report_number: reportNumber,
         password_hash: passwordHash,
-        title,
-        content,
+        title: encTitle,
+        content: encContent,
         ai_validation_score: aiValidationScore ? parseFloat(aiValidationScore) : null,
         ai_validation_feedback: aiValidationFeedback ? JSON.parse(aiValidationFeedback) : null,
         reporter_ip_hash: ipHash,
@@ -223,7 +270,17 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // TODO: Send notification to company admins
+    // Send notification to company admins
+    const origin = request.nextUrl.origin;
+    notifyCompanyAdmins({
+      companyId,
+      reportId: report.id,
+      reportNumber: report.report_number,
+      eventType: "new_report",
+      title: "새로운 제보가 접수되었습니다",
+      message: "새로운 제보가 접수되었습니다. 기업 관리자 페이지에서 확인해 주세요.",
+      origin,
+    }).catch((err) => console.error("Notification error:", err));
 
     return NextResponse.json({
       reportNumber: report.report_number,

@@ -5,6 +5,7 @@ export const ALLOWED_FILE_TYPES = [
   "image/jpeg",
   "image/png",
   "image/gif",
+  "text/plain",
   "application/msword",
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
   "application/vnd.ms-excel",
@@ -21,7 +22,7 @@ export const reportSubmitSchema = z.object({
   content: z.string().min(20, "내용은 최소 20자 이상 입력해주세요"),
   password: z
     .string()
-    .min(8, "비밀번호는 최소 8자리입니다"),
+    .min(6, "비밀번호는 최소 6자리입니다"),
   passwordConfirm: z.string(),
   captchaToken: z.string().optional(),
 }).refine((data) => data.password === data.passwordConfirm, {

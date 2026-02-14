@@ -89,6 +89,11 @@ export default function ReportDetailPage() {
   // Download state
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
 
+  // Comment edit/delete state
+  const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
+  const [editCommentContent, setEditCommentContent] = useState("");
+  const [savingComment, setSavingComment] = useState(false);
+
   function getToken() {
     return sessionStorage.getItem(`report_token_${reportNumber}`);
   }
@@ -374,6 +379,47 @@ export default function ReportDetailPage() {
     }
   }
 
+  async function handleEditComment(commentId: string) {
+    if (!editCommentContent.trim()) return;
+    setSavingComment(true);
+    const token = getToken();
+    try {
+      const res = await fetch(`/api/reports/${reportNumber}/comments`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ commentId, content: editCommentContent }),
+      });
+      if (res.ok) {
+        setComments((prev) =>
+          prev.map((c) => c.id === commentId ? { ...c, content: editCommentContent.trim() } : c)
+        );
+        setEditingCommentId(null);
+      }
+    } catch {
+      setError("댓글 수정 중 오류가 발생했습니다");
+    } finally {
+      setSavingComment(false);
+    }
+  }
+
+  async function handleDeleteComment(commentId: string) {
+    const token = getToken();
+    try {
+      const res = await fetch(`/api/reports/${reportNumber}/comments?commentId=${commentId}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        setComments((prev) => prev.filter((c) => c.id !== commentId));
+      }
+    } catch {
+      setError("댓글 삭제 중 오류가 발생했습니다");
+    }
+  }
+
   function formatTime(dateStr: string) {
     const d = new Date(dateStr);
     const now = new Date();
@@ -418,14 +464,18 @@ export default function ReportDetailPage() {
               </Badge>
               {!isEditing && (
                 <>
-                  <Button variant="outline" size="sm" onClick={startEdit}>
-                    <Pencil className="h-4 w-4 mr-1" />
-                    수정
-                  </Button>
-                  <Button variant="outline" size="sm" onClick={handleDeleteClick} className="text-destructive hover:text-destructive">
-                    <Trash2 className="h-4 w-4 mr-1" />
-                    삭제
-                  </Button>
+                  {report.status?.is_default && (
+                    <>
+                      <Button variant="outline" size="sm" onClick={startEdit}>
+                        <Pencil className="h-4 w-4 mr-1" />
+                        수정
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={handleDeleteClick} className="text-destructive hover:text-destructive">
+                        <Trash2 className="h-4 w-4 mr-1" />
+                        제보 취소
+                      </Button>
+                    </>
+                  )}
                 </>
               )}
             </div>
@@ -457,6 +507,7 @@ export default function ReportDetailPage() {
                 value={editTitle}
                 onChange={(e) => setEditTitle(e.target.value)}
                 placeholder="제목을 입력하세요"
+                maxLength={40}
               />
             ) : (
               <p>{report.title}</p>
@@ -475,7 +526,7 @@ export default function ReportDetailPage() {
                 className="min-h-[240px]"
               />
             ) : (
-              <div className="whitespace-pre-wrap text-sm bg-muted/50 rounded-lg p-4">
+              <div className="whitespace-pre-wrap break-words text-sm bg-muted/50 rounded-lg p-4">
                 {report.content}
               </div>
             )}
@@ -628,10 +679,11 @@ export default function ReportDetailPage() {
             ) : (
               publicComments.map((comment) => {
                 const isReporter = comment.author_type === "reporter";
+                const isEditingThis = editingCommentId === comment.id;
                 return (
                   <div
                     key={comment.id}
-                    className={`flex ${isReporter ? "justify-end" : "justify-start"}`}
+                    className={`group flex ${isReporter ? "justify-end" : "justify-start"}`}
                   >
                     <div className={`max-w-[75%] ${isReporter ? "items-end" : "items-start"}`}>
                       {/* Author label */}
@@ -646,20 +698,70 @@ export default function ReportDetailPage() {
                         </span>
                       </div>
                       {/* Bubble */}
-                      <div className={`flex items-end gap-1.5 ${isReporter ? "flex-row-reverse" : ""}`}>
-                        <div
-                          className={`rounded-2xl px-3.5 py-2 text-sm whitespace-pre-wrap break-words ${
-                            isReporter
-                              ? "bg-primary text-primary-foreground rounded-br-sm"
-                              : "bg-white dark:bg-muted border rounded-bl-sm"
-                          }`}
-                        >
-                          {comment.content}
+                      {isEditingThis ? (
+                        <div className="space-y-2">
+                          <Textarea
+                            value={editCommentContent}
+                            onChange={(e) => setEditCommentContent(e.target.value)}
+                            rows={3}
+                            className="text-sm min-h-[60px]"
+                          />
+                          <div className="flex gap-1 justify-end">
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-7 w-7"
+                              onClick={() => setEditingCommentId(null)}
+                            >
+                              <X className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button
+                              size="icon"
+                              className="h-7 w-7"
+                              disabled={savingComment}
+                              onClick={() => handleEditComment(comment.id)}
+                            >
+                              {savingComment ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
+                            </Button>
+                          </div>
                         </div>
-                        <span className="text-[10px] text-muted-foreground shrink-0 pb-0.5">
-                          {formatTime(comment.created_at)}
-                        </span>
-                      </div>
+                      ) : (
+                        <div className={`flex items-end gap-1.5 ${isReporter ? "flex-row-reverse" : ""}`}>
+                          <div
+                            className={`rounded-2xl px-3.5 py-2 text-sm whitespace-pre-wrap break-words ${
+                              isReporter
+                                ? "bg-primary text-primary-foreground rounded-br-sm"
+                                : "bg-white dark:bg-muted border rounded-bl-sm"
+                            }`}
+                          >
+                            {comment.content}
+                          </div>
+                          <div className="flex flex-col items-center gap-0.5 shrink-0 pb-0.5">
+                            <span className="text-[10px] text-muted-foreground">
+                              {formatTime(comment.created_at)}
+                            </span>
+                            {isReporter && (
+                              <div className="hidden group-hover:flex gap-0.5">
+                                <button
+                                  className="text-muted-foreground hover:text-foreground p-0.5"
+                                  onClick={() => {
+                                    setEditingCommentId(comment.id);
+                                    setEditCommentContent(comment.content);
+                                  }}
+                                >
+                                  <Pencil className="h-3 w-3" />
+                                </button>
+                                <button
+                                  className="text-muted-foreground hover:text-destructive p-0.5"
+                                  onClick={() => handleDeleteComment(comment.id)}
+                                >
+                                  <Trash2 className="h-3 w-3" />
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 );
@@ -702,19 +804,19 @@ export default function ReportDetailPage() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <AlertTriangle className="h-5 w-5 text-destructive" />
-              제보 삭제
+              제보 취소
             </DialogTitle>
             <DialogDescription>
-              이 제보를 정말 삭제하시겠습니까? 삭제된 제보는 복구할 수 없으며, 첨부파일과 모든 대화 내역이 함께 삭제됩니다.
+              이 제보를 정말 취소하시겠습니까? 취소된 제보는 복구할 수 없으며, 첨부파일과 모든 대화 내역이 함께 삭제됩니다.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="gap-2 sm:gap-0">
             <Button variant="outline" onClick={() => setShowDeleteDialog(false)} disabled={deleting}>
-              취소
+              돌아가기
             </Button>
             <Button variant="destructive" onClick={confirmDelete} disabled={deleting}>
               {deleting ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
-              삭제
+              제보 취소
             </Button>
           </DialogFooter>
         </DialogContent>

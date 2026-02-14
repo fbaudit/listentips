@@ -27,7 +27,7 @@ export async function PATCH(
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  const allowedFields = ["type_name", "type_name_en", "type_name_ja", "type_name_zh", "description", "display_order", "is_active"];
+  const allowedFields = ["type_name", "type_name_en", "type_name_ja", "type_name_zh", "code", "description", "notes", "display_order", "is_active"];
   const updateData: Record<string, unknown> = {};
   for (const field of allowedFields) {
     if (body[field] !== undefined) {

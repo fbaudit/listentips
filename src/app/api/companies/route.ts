@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { adminAuth } from "@/lib/auth/admin-auth";
+import { isAdminRole } from "@/lib/auth/guards";
 import { generateCode } from "@/lib/utils/generate-code";
 
 export async function GET(request: NextRequest) {
   const session = await adminAuth();
-  if (!session?.user || session.user.role !== "super_admin") {
+  if (!session?.user || !isAdminRole(session.user.role)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -39,8 +40,33 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "기업 조회 중 오류가 발생했습니다" }, { status: 500 });
   }
 
+  // Fetch latest subscription status for each company
+  const companyIds = (data || []).map((c: { id: string }) => c.id);
+  const { data: subscriptions } = await supabase
+    .from("subscriptions")
+    .select("company_id, status, end_date")
+    .in("company_id", companyIds)
+    .order("created_at", { ascending: false });
+
+  // Build a map of company_id → latest subscription
+  const subMap = new Map<string, { status: string; end_date: string | null }>();
+  for (const sub of subscriptions || []) {
+    if (!subMap.has(sub.company_id)) {
+      subMap.set(sub.company_id, { status: sub.status, end_date: sub.end_date });
+    }
+  }
+
+  const companies = (data || []).map((c: Record<string, unknown>) => {
+    const sub = subMap.get(c.id as string);
+    return {
+      ...c,
+      subscription_status: sub?.status || null,
+      subscription_end_date: sub?.end_date || null,
+    };
+  });
+
   return NextResponse.json({
-    companies: data || [],
+    companies,
     total: count || 0,
     page,
     totalPages: Math.ceil((count || 0) / limit),
@@ -49,7 +75,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   const session = await adminAuth();
-  if (!session?.user || session.user.role !== "super_admin") {
+  if (!session?.user || !isAdminRole(session.user.role)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

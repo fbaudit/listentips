@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useTranslations } from "next-intl";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -26,13 +26,14 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, Upload, Brain, CheckCircle, AlertTriangle, Copy } from "lucide-react";
+import { Loader2, Upload, Brain, CheckCircle, AlertTriangle, Copy, Sparkles } from "lucide-react";
 import { reportSubmitSchema, type ReportSubmitInput, ALLOWED_FILE_TYPES, MAX_FILE_SIZE, MAX_TOTAL_SIZE } from "@/lib/validators/report";
 
 interface ReportType {
   id: string;
   type_name: string;
   type_name_en: string | null;
+  description: string | null;
 }
 
 interface AIValidation {
@@ -58,6 +59,7 @@ export default function ReportSubmitPage() {
 
   const [reportTypes, setReportTypes] = useState<ReportType[]>([]);
   const [files, setFiles] = useState<File[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(false);
   const [aiValidation, setAiValidation] = useState<AIValidation | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
@@ -66,6 +68,11 @@ export default function ReportSubmitPage() {
   const [reportNumber, setReportNumber] = useState("");
   const [error, setError] = useState("");
   const [reportGuideMessage, setReportGuideMessage] = useState("");
+  const [minPasswordLength, setMinPasswordLength] = useState(8);
+  const [requireSpecialChars, setRequireSpecialChars] = useState(false);
+  const [aiEnhanceLoading, setAiEnhanceLoading] = useState(false);
+  const [showEnhanceDialog, setShowEnhanceDialog] = useState(false);
+  const [enhancedContent, setEnhancedContent] = useState("");
 
   const form = useForm<ReportSubmitInput>({
     resolver: zodResolver(reportSubmitSchema),
@@ -90,6 +97,12 @@ export default function ReportSubmitPage() {
           if (data.company.report_guide_message) {
             setReportGuideMessage(data.company.report_guide_message);
           }
+          if (data.company.min_password_length) {
+            setMinPasswordLength(data.company.min_password_length);
+          }
+          if (data.company.require_special_chars) {
+            setRequireSpecialChars(true);
+          }
         }
       })
       .catch(() => {});
@@ -110,6 +123,8 @@ export default function ReportSubmitPage() {
     }
 
     setFiles([...files, ...validFiles]);
+    // Reset native input so the same file can be re-selected
+    if (fileInputRef.current) fileInputRef.current.value = "";
   }
 
   function removeFile(index: number) {
@@ -139,6 +154,52 @@ export default function ReportSubmitPage() {
     } finally {
       setAiLoading(false);
     }
+  }
+
+  async function handleAiEnhance() {
+    const content = form.getValues("content");
+    const title = form.getValues("title");
+    const reportTypeId = form.getValues("reportTypeId");
+
+    if (!reportTypeId) {
+      setError("제보 유형을 선택해주세요");
+      return;
+    }
+
+    if (!content || content.length < 20) {
+      setError("AI 업데이트를 위해 최소 20자 이상의 내용을 입력해주세요");
+      return;
+    }
+
+    const selectedType = reportTypes.find((t) => t.id === reportTypeId);
+    const reportType = selectedType?.type_name || "";
+
+    setAiEnhanceLoading(true);
+    setShowEnhanceDialog(true);
+    try {
+      const res = await fetch("/api/ai/enhance-report", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content, title, companyCode, reportType }),
+      });
+      const data = await res.json();
+      if (data.error) {
+        setError(data.error);
+        setShowEnhanceDialog(false);
+      } else {
+        setEnhancedContent(data.enhancedContent);
+      }
+    } catch {
+      setError("AI 내용 보강 중 오류가 발생했습니다");
+      setShowEnhanceDialog(false);
+    } finally {
+      setAiEnhanceLoading(false);
+    }
+  }
+
+  function handleApplyEnhanced() {
+    form.setValue("content", enhancedContent, { shouldValidate: true });
+    setShowEnhanceDialog(false);
   }
 
   async function onSubmit(data: ReportSubmitInput) {
@@ -244,6 +305,15 @@ export default function ReportSubmitPage() {
               ))}
             </SelectContent>
           </Select>
+          {(() => {
+            const selectedType = reportTypes.find((t) => t.id === form.watch("reportTypeId"));
+            return selectedType?.description ? (
+              <div
+                className="text-sm text-muted-foreground bg-muted/50 rounded-md px-3 py-2 prose prose-sm max-w-none [&>*:first-child]:mt-0 [&>*:last-child]:mb-0"
+                dangerouslySetInnerHTML={{ __html: selectedType.description }}
+              />
+            ) : null;
+          })()}
           {form.formState.errors.reportTypeId && (
             <p className="text-sm text-destructive">{form.formState.errors.reportTypeId.message}</p>
           )}
@@ -252,7 +322,7 @@ export default function ReportSubmitPage() {
         {/* Title */}
         <div className="space-y-2">
           <Label htmlFor="title">{t("reportTitle")} *</Label>
-          <Input id="title" {...form.register("title")} placeholder="제보 제목을 입력하세요" />
+          <Input id="title" {...form.register("title")} placeholder="제보 제목을 입력하세요" maxLength={40} />
           {form.formState.errors.title && (
             <p className="text-sm text-destructive">{form.formState.errors.title.message}</p>
           )}
@@ -271,24 +341,35 @@ export default function ReportSubmitPage() {
           {form.formState.errors.content && (
             <p className="text-sm text-destructive">{form.formState.errors.content.message}</p>
           )}
-          <Button type="button" variant="outline" size="sm" onClick={handleAiValidate}>
-            <Brain className="h-4 w-4 mr-2" />
-            {t("aiValidate")}
-          </Button>
+          <div className="flex gap-2">
+            <Button type="button" variant="outline" size="sm" onClick={handleAiValidate}>
+              <Brain className="h-4 w-4 mr-2" />
+              {t("aiValidate")}
+            </Button>
+            <Button type="button" variant="outline" size="sm" onClick={handleAiEnhance} disabled={aiEnhanceLoading}>
+              {aiEnhanceLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Sparkles className="h-4 w-4 mr-2" />}
+              AI 제보내용 업데이트
+            </Button>
+          </div>
         </div>
 
         {/* File Upload */}
         <div className="space-y-2">
           <Label>{t("attachments")}</Label>
-          <div className="border-2 border-dashed rounded-lg p-6 text-center">
+          <div
+            className="border-2 border-dashed rounded-lg p-6 text-center cursor-pointer hover:border-primary/50 hover:bg-muted/30 transition-colors"
+            onClick={() => fileInputRef.current?.click()}
+          >
             <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
-            <p className="text-sm text-muted-foreground mb-2">{t("attachmentHelp")}</p>
-            <Input
+            <p className="text-sm font-medium mb-1">클릭하여 파일을 선택하세요</p>
+            <p className="text-xs text-muted-foreground">{t("attachmentHelp")}</p>
+            <input
+              ref={fileInputRef}
               type="file"
               multiple
-              accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx"
+              accept=".pdf,.jpg,.jpeg,.png,.txt,.doc,.docx,.xls,.xlsx"
               onChange={handleFileChange}
-              className="max-w-xs mx-auto"
+              className="hidden"
             />
           </div>
           {files.length > 0 && (
@@ -308,7 +389,9 @@ export default function ReportSubmitPage() {
           <div className="space-y-2">
             <Label htmlFor="password">{t("password")} *</Label>
             <Input id="password" type="password" {...form.register("password")} />
-            <p className="text-xs text-muted-foreground">{t("passwordHelp")}</p>
+            <p className="text-xs text-muted-foreground">
+              {t("passwordHelp")} (최소 {minPasswordLength}자{requireSpecialChars ? ", 특수문자 포함 필수" : ""})
+            </p>
             {form.formState.errors.password && (
               <p className="text-sm text-destructive">{form.formState.errors.password.message}</p>
             )}
@@ -376,6 +459,35 @@ export default function ReportSubmitPage() {
                   </ul>
                 </div>
               )}
+            </div>
+          ) : null}
+        </DialogContent>
+      </Dialog>
+
+      {/* AI Enhance Dialog */}
+      <Dialog open={showEnhanceDialog} onOpenChange={setShowEnhanceDialog}>
+        <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>AI 제보내용 업데이트</DialogTitle>
+          </DialogHeader>
+          {aiEnhanceLoading ? (
+            <div className="flex flex-col items-center py-8 gap-3">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <p className="text-sm text-muted-foreground">AI가 제보 내용을 보강하고 있습니다...</p>
+            </div>
+          ) : enhancedContent ? (
+            <div className="space-y-4">
+              <div className="bg-muted rounded-lg p-4 whitespace-pre-wrap text-sm break-words">
+                {enhancedContent}
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={() => setShowEnhanceDialog(false)}>
+                  취소
+                </Button>
+                <Button onClick={handleApplyEnhanced}>
+                  적용
+                </Button>
+              </div>
             </div>
           ) : null}
         </DialogContent>

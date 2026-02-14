@@ -30,41 +30,44 @@ async function getEmailSettings(): Promise<EmailSettings | null> {
   return data.value as EmailSettings;
 }
 
-export async function sendEmail({ to, subject, html }: EmailOptions): Promise<boolean> {
+export async function sendEmail({ to, subject, html }: EmailOptions): Promise<{ success: boolean; error?: string }> {
   const settings = await getEmailSettings();
-  if (!settings || !settings.enabled) return false;
-  if (!settings.host || !settings.user) return false;
+  if (!settings || !settings.enabled) {
+    const msg = "이메일 발송이 비활성화되어 있습니다 (enabled: false)";
+    console.error(msg);
+    return { success: false, error: msg };
+  }
+  if (!settings.host || !settings.user) {
+    const msg = `이메일 설정 누락 - host: "${settings.host}", user: "${settings.user}"`;
+    console.error(msg);
+    return { success: false, error: msg };
+  }
 
   try {
-    // Use MailChannels API (Cloudflare Workers compatible) or basic SMTP via fetch
-    // For Cloudflare Workers environment, we use a fetch-based approach
-    const auth = btoa(`${settings.user}:${settings.password}`);
-    const fromAddress = settings.from_email || settings.user;
-
-    // Build MIME message for MailChannels or similar HTTP-based email API
-    // If using standard SMTP, a proxy endpoint would be needed
-    // For now, implement using MailChannels Send API (free for Cloudflare Workers)
-    const response = await fetch("https://api.mailchannels.net/tx/v1/send", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        personalizations: [{ to: [{ email: to }] }],
-        from: { email: fromAddress, name: settings.from_name },
-        subject,
-        content: [{ type: "text/html", value: html }],
-      }),
+    const nodemailer = await import("nodemailer");
+    const transporter = nodemailer.default.createTransport({
+      host: settings.host,
+      port: settings.port,
+      secure: settings.secure,
+      auth: {
+        user: settings.user,
+        pass: settings.password,
+      },
     });
 
-    if (!response.ok) {
-      // Fallback: try direct SMTP relay via custom endpoint
-      // This is a placeholder - in production, configure an email service
-      console.error("Email send failed:", response.status, await response.text());
-      return false;
-    }
+    const fromAddress = settings.from_email || settings.user;
 
-    return true;
+    await transporter.sendMail({
+      from: `"${settings.from_name}" <${fromAddress}>`,
+      to,
+      subject,
+      html,
+    });
+
+    return { success: true };
   } catch (error) {
-    console.error("Email send error:", error);
-    return false;
+    const errMsg = error instanceof Error ? error.message : String(error);
+    console.error("Email send error:", errMsg);
+    return { success: false, error: errMsg };
   }
 }

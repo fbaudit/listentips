@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { adminAuth } from "@/lib/auth/admin-auth";
+import { isAdminRole } from "@/lib/auth/guards";
 import { auth } from "@/lib/auth/auth";
 
 export async function GET(request: NextRequest) {
@@ -9,7 +10,7 @@ export async function GET(request: NextRequest) {
 
   // Try admin session first (super_admin sees all subscriptions)
   const adminSession = await adminAuth();
-  if (adminSession?.user?.role === "super_admin") {
+  if (adminSession?.user?.role && isAdminRole(adminSession.user.role)) {
     const page = parseInt(searchParams.get("page") || "1");
     const limit = parseInt(searchParams.get("limit") || "20");
     const offset = (page - 1) * limit;
@@ -59,7 +60,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   const session = await adminAuth();
-  if (!session?.user || session.user.role !== "super_admin") {
+  if (!session?.user || !isAdminRole(session.user.role)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

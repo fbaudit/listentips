@@ -2,6 +2,7 @@ import type { NextAuthConfig } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { verifyPassword } from "@/lib/utils/password";
+import { verifyCode } from "@/lib/utils/verification-code";
 import type { UserRole } from "@/types/database";
 
 export const authOptions: NextAuthConfig = {
@@ -11,6 +12,7 @@ export const authOptions: NextAuthConfig = {
       credentials: {
         username: { label: "Username", type: "text" },
         password: { label: "Password", type: "password" },
+        verificationCode: { label: "Verification Code", type: "text" },
       },
       async authorize(credentials) {
         if (!credentials?.username || !credentials?.password) {
@@ -45,6 +47,49 @@ export const authOptions: NextAuthConfig = {
         if (!isValid) {
           return null;
         }
+
+        // Check if 2FA is enabled platform-wide
+        const { data: securityRow } = await supabase
+          .from("platform_settings")
+          .select("value")
+          .eq("key", "login_security")
+          .single();
+
+        let twoFactorEnabled = securityRow?.value?.two_factor_enabled ?? true;
+
+        // Also check company-level 2FA setting
+        if (twoFactorEnabled && user.company_id) {
+          const { data: company } = await supabase
+            .from("companies")
+            .select("two_factor_enabled")
+            .eq("id", user.company_id)
+            .single();
+
+          if (company && !company.two_factor_enabled) {
+            twoFactorEnabled = false;
+          }
+        }
+
+        // Verify 2FA code (skip if 2FA is disabled)
+        if (twoFactorEnabled) {
+          const code = credentials.verificationCode as string;
+          if (!code) {
+            return null;
+          }
+
+          const codeValid = await verifyCode(user.id, code);
+          if (!codeValid) {
+            return null;
+          }
+        }
+
+        // Record successful login
+        const ip = "server"; // IP is recorded in the login API
+        await supabase.from("login_attempts").insert({
+          username: user.username,
+          ip_hash: ip,
+          success: true,
+        });
 
         // Update last login
         await supabase

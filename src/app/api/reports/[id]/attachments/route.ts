@@ -1,30 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { verifyReportAccess } from "@/lib/auth/report-access";
 import { generateCode } from "@/lib/utils/generate-code";
 import { ALLOWED_FILE_TYPES, MAX_FILE_SIZE, MAX_TOTAL_SIZE } from "@/lib/validators/report";
-
-function isUUID(str: string): boolean {
-  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
-}
+import { notifyCompanyAdmins } from "@/lib/utils/notify-company-admins";
 
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const supabase = createAdminClient();
 
-  // Resolve report
-  const column = isUUID(id) ? "id" : "report_number";
-  const { data: report } = await supabase
-    .from("reports")
-    .select("id")
-    .eq(column, id)
-    .single();
-
-  if (!report) {
-    return NextResponse.json({ error: "제보를 찾을 수 없습니다" }, { status: 404 });
+  // Verify access
+  const access = await verifyReportAccess(request, id);
+  if (!access.authorized) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+
+  const supabase = createAdminClient();
 
   const formData = await request.formData();
   const files = formData.getAll("files") as File[];
@@ -37,7 +30,7 @@ export async function POST(
   const { data: existingAttachments } = await supabase
     .from("report_attachments")
     .select("file_size")
-    .eq("report_id", report.id);
+    .eq("report_id", access.reportId);
 
   const existingSize = (existingAttachments || []).reduce((sum, a) => sum + (a.file_size || 0), 0);
   const newSize = files.reduce((sum, f) => sum + f.size, 0);
@@ -54,7 +47,7 @@ export async function POST(
     if (file.size > MAX_FILE_SIZE) continue;
 
     const ext = file.name.split(".").pop();
-    const filePath = `reports/${report.id}/${generateCode(16)}.${ext}`;
+    const filePath = `reports/${access.reportId}/${generateCode(16)}.${ext}`;
 
     const { error: uploadError } = await supabase.storage
       .from("report-attachments")
@@ -64,7 +57,7 @@ export async function POST(
       const { data: attachment } = await supabase
         .from("report_attachments")
         .insert({
-          report_id: report.id,
+          report_id: access.reportId,
           file_name: file.name,
           file_path: filePath,
           file_size: file.size,
@@ -76,6 +69,38 @@ export async function POST(
       if (attachment) {
         uploaded.push(attachment);
       }
+    }
+  }
+
+  // Record edit history and notify for attachment additions
+  if (uploaded.length > 0) {
+    await supabase.from("report_edit_history").insert(
+      uploaded.map((att) => ({
+        report_id: access.reportId,
+        field_name: "attachment_added",
+        old_value: null,
+        new_value: att.file_name,
+        edited_by: "reporter",
+      }))
+    );
+
+    const { data: reportInfo } = await supabase
+      .from("reports")
+      .select("report_number")
+      .eq("id", access.reportId)
+      .single();
+
+    if (reportInfo) {
+      const origin = request.nextUrl.origin;
+      notifyCompanyAdmins({
+        companyId: access.companyId,
+        reportId: access.reportId,
+        reportNumber: reportInfo.report_number,
+        eventType: "report_modified",
+        title: "첨부파일이 추가되었습니다",
+        message: `제보자가 첨부파일 ${uploaded.length}개를 추가했습니다.`,
+        origin,
+      }).catch((err) => console.error("Notification error:", err));
     }
   }
 

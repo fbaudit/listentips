@@ -31,7 +31,7 @@ export default function LandingPage() {
       <section className="relative py-20 lg:py-32 text-center px-4">
         <div className="container max-w-4xl mx-auto space-y-6">
           <Badge variant="secondary" className="text-sm px-4 py-1">
-            Trusted by 100+ organizations
+            Trusted by 30+ organizations
           </Badge>
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight lg:whitespace-nowrap">
             {t("hero.title")}

@@ -71,7 +71,10 @@ export async function cancelSubscription(subscriptionId: string) {
 
   const { error } = await supabase
     .from("subscriptions")
-    .update({ status: "cancelled" })
+    .update({
+      status: "cancelled",
+      cancelled_at: new Date().toISOString(),
+    })
     .eq("id", subscriptionId);
 
   if (error) {
@@ -83,16 +86,27 @@ export async function cancelSubscription(subscriptionId: string) {
 export async function checkExpiredSubscriptions() {
   const supabase = createAdminClient();
   const now = new Date().toISOString();
+  let totalProcessed = 0;
 
-  const { data: expired } = await supabase
+  // 1. Check active subscriptions that have expired
+  const { data: expiredActive } = await supabase
     .from("subscriptions")
     .select("id, company_id")
     .eq("status", "active")
     .lt("end_date", now);
 
-  if (!expired?.length) return;
+  // 2. Check cancelled subscriptions that have passed their end date
+  const { data: expiredCancelled } = await supabase
+    .from("subscriptions")
+    .select("id, company_id")
+    .eq("status", "cancelled")
+    .lt("end_date", now);
 
-  for (const sub of expired) {
+  const allExpired = [...(expiredActive || []), ...(expiredCancelled || [])];
+
+  const processedCompanyIds = new Set<string>();
+
+  for (const sub of allExpired) {
     await supabase
       .from("subscriptions")
       .update({ status: "expired" })
@@ -102,7 +116,28 @@ export async function checkExpiredSubscriptions() {
       .from("companies")
       .update({ is_active: false })
       .eq("id", sub.company_id);
+
+    processedCompanyIds.add(sub.company_id);
+    totalProcessed++;
   }
 
-  return expired.length;
+  // 3. Check companies whose service_end has passed (regardless of subscription)
+  const { data: expiredCompanies } = await supabase
+    .from("companies")
+    .select("id")
+    .eq("is_active", true)
+    .lt("service_end", now);
+
+  for (const company of expiredCompanies || []) {
+    if (processedCompanyIds.has(company.id)) continue;
+
+    await supabase
+      .from("companies")
+      .update({ is_active: false })
+      .eq("id", company.id);
+
+    totalProcessed++;
+  }
+
+  return totalProcessed;
 }

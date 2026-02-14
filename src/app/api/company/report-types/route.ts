@@ -12,7 +12,7 @@ export async function GET() {
 
   const { data: reportTypes, error } = await supabase
     .from("report_types")
-    .select("id, type_name, type_name_en, type_name_ja, type_name_zh, description, display_order, is_active")
+    .select("id, type_name, type_name_en, type_name_ja, type_name_zh, code, description, notes, display_order, is_active")
     .eq("company_id", session.user.companyId)
     .order("display_order");
 
@@ -53,7 +53,9 @@ export async function POST(request: NextRequest) {
       type_name_en: body.type_name_en || null,
       type_name_ja: body.type_name_ja || null,
       type_name_zh: body.type_name_zh || null,
+      code: body.code || null,
       description: body.description || null,
+      notes: body.notes || null,
       display_order: (maxOrder?.display_order || 0) + 1,
       is_active: true,
     })

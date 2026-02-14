@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { adminAuth } from "@/lib/auth/admin-auth";
+import { isAdminRole } from "@/lib/auth/guards";
 
 export async function GET() {
   const session = await adminAuth();
-  if (!session?.user || session.user.role !== "super_admin") {
+  if (!session?.user || !isAdminRole(session.user.role)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

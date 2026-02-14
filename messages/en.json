@@ -104,9 +104,17 @@
   },
   "apply": {
     "title": "Apply for Anonymous Reporting Channel",
-    "subtitle": "Set up your organization's dedicated reporting channel with simple information",
+    "description": "Set up your organization's dedicated reporting channel with simple information",
+    "submit": "Submit Application",
+    "submitted": {
+      "title": "Application Submitted",
+      "description": "We will notify you by email once approved by the administrator",
+      "applicationId": "Application ID",
+      "backHome": "Return to Home"
+    },
     "step1": {
       "title": "Company Information",
+      "description": "Please enter your company's basic information",
       "companyName": "Company Name",
       "businessNumber": "Business Registration Number",
       "industry": "Industry",
@@ -114,34 +122,30 @@
       "address": "Address",
       "department": "Department",
       "reportTypes": "Report Types",
-      "welcomeMessage": "Welcome Message",
-      "locale": "Language",
-      "aiValidation": "Use AI Report Validation",
-      "chatbot": "Use Chatbot"
+      "welcomeMessage": "Welcome Message"
     },
     "step2": {
       "title": "Administrator Information",
-      "adminName": "Name",
-      "adminEmail": "Email",
-      "adminPhone": "Phone",
-      "adminUsername": "Login ID",
-      "adminPassword": "Password",
-      "emailVerification": "Email Verification"
+      "description": "Please enter information for the admin account",
+      "name": "Name",
+      "email": "Email",
+      "phone": "Phone",
+      "username": "Login ID",
+      "password": "Password"
     },
     "step3": {
       "title": "Select Plan",
-      "selectPlan": "Choose your preferred plan"
+      "description": "Choose your preferred plan"
     },
     "step4": {
       "title": "Terms Agreement",
-      "termsAgreement": "I agree to the Terms of Service",
-      "privacyAgreement": "I agree to the Privacy Policy"
+      "description": "Please agree to the terms to use the service",
+      "termsLabel": "I agree to the Terms of Service",
+      "privacyLabel": "I agree to the Privacy Policy"
     },
     "step5": {
-      "title": "Application Complete",
-      "successMessage": "Your application has been submitted",
-      "reviewMessage": "We will notify you by email once approved",
-      "goHome": "Return to Home"
+      "title": "Review & Submit",
+      "description": "Review your information and submit your application"
     }
   },
   "report": {
@@ -157,11 +161,11 @@
       "reportTitle": "Title",
       "reportContent": "Content",
       "attachments": "Attachments",
-      "attachmentHelp": "PDF, JPG, PNG, DOC, DOCX, XLS, XLSX (10MB each, 50MB total)",
+      "attachmentHelp": "PDF, JPG, PNG, TXT, DOC, DOCX, XLS, XLSX (max 10MB per file, 50MB total)",
       "password": "Verification Password",
       "passwordConfirm": "Confirm Password",
       "passwordHelp": "This password is needed to check your report later (min 8 characters)",
-      "aiValidate": "AI Validate",
+      "aiValidate": "5W1H Validate",
       "aiValidating": "AI is validating...",
       "submitReport": "Submit Report",
       "submitting": "Submitting..."
@@ -215,6 +219,7 @@
     },
     "dashboard": {
       "title": "Dashboard",
+      "description": "Monitor report status at a glance",
       "totalReports": "Total Reports",
       "pendingReports": "Pending",
       "inProgress": "In Progress",
@@ -226,6 +231,7 @@
     },
     "reports": {
       "title": "Report Management",
+      "description": "Manage and process submitted reports",
       "filterByType": "By Type",
       "filterByStatus": "By Status",
       "filterByDate": "Date Range",
@@ -238,6 +244,7 @@
     },
     "settings": {
       "title": "Company Settings",
+      "description": "Manage company information and reporting channel settings",
       "companyInfo": "Company Information",
       "reportTypes": "Report Types",
       "notifications": "Notifications",
@@ -245,6 +252,7 @@
     },
     "subscription": {
       "title": "Subscription",
+      "description": "Check subscription status and payment information",
       "currentPlan": "Current Plan",
       "expiryDate": "Expiry Date",
       "changePlan": "Change Plan",
@@ -286,6 +294,9 @@
       "copyUrl": "Copy URL",
       "activate": "Activate",
       "deactivate": "Deactivate"
+    },
+    "reports": {
+      "title": "Report Management"
     },
     "codes": {
       "title": "Code Management",

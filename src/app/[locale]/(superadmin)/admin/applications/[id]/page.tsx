@@ -20,8 +20,11 @@ interface ApplicationDetail {
   employee_count: number | null;
   address: string | null;
   department: string | null;
+  channel_name: string | null;
   report_types: string[];
   welcome_message: string | null;
+  report_guide_message: string | null;
+  content_blocks: Array<{ id: string; content: string; order: number }> | null;
   preferred_locale: string;
   use_ai_validation: boolean;
   use_chatbot: boolean;
@@ -41,7 +44,7 @@ export default function AdminApplicationDetailPage() {
   const appId = params.id as string;
   const [application, setApplication] = useState<ApplicationDetail | null>(null);
   const [reviewNotes, setReviewNotes] = useState("");
-  const [processing, setProcessing] = useState(false);
+  const [processingAction, setProcessingAction] = useState<"approve" | "reject" | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -59,7 +62,7 @@ export default function AdminApplicationDetailPage() {
   }, [appId]);
 
   const handleAction = async (action: "approve" | "reject") => {
-    setProcessing(true);
+    setProcessingAction(action);
     try {
       const res = await fetch(`/api/applications/${appId}`, {
         method: "PATCH",
@@ -79,7 +82,7 @@ export default function AdminApplicationDetailPage() {
     } catch {
       toast.error("처리 중 오류가 발생했습니다");
     } finally {
-      setProcessing(false);
+      setProcessingAction(null);
     }
   };
 
@@ -116,15 +119,6 @@ export default function AdminApplicationDetailPage() {
               {application.address && <div className="col-span-2"><span className="text-muted-foreground">주소:</span> {application.address}</div>}
               {application.department && <div><span className="text-muted-foreground">담당부서:</span> {application.department}</div>}
             </div>
-            <Separator />
-            <div>
-              <span className="text-muted-foreground">제보 유형:</span>
-              <div className="flex flex-wrap gap-1 mt-1">
-                {application.report_types?.map((type) => (
-                  <Badge key={type} variant="secondary" className="text-xs">{type}</Badge>
-                ))}
-              </div>
-            </div>
           </CardContent>
         </Card>
 
@@ -147,6 +141,12 @@ export default function AdminApplicationDetailPage() {
             <CardTitle className="flex items-center gap-2"><Settings className="w-5 h-5" />채널 설정</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3 text-sm">
+            {application.channel_name && (
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">채널 이름</span>
+                <span>{application.channel_name}</span>
+              </div>
+            )}
             <div className="flex justify-between">
               <span className="text-muted-foreground">선호 언어</span>
               <span>{application.preferred_locale}</span>
@@ -167,8 +167,39 @@ export default function AdminApplicationDetailPage() {
               <>
                 <Separator />
                 <div>
-                  <span className="text-muted-foreground">환영 메시지:</span>
+                  <span className="text-muted-foreground">안내 메시지:</span>
                   <p className="mt-1">{application.welcome_message}</p>
+                </div>
+              </>
+            )}
+            {application.report_guide_message && (
+              <div>
+                <span className="text-muted-foreground">제보내용 안내문구:</span>
+                <p className="mt-1">{application.report_guide_message}</p>
+              </div>
+            )}
+            <div>
+              <span className="text-muted-foreground">제보 유형:</span>
+              <div className="flex flex-wrap gap-1 mt-1">
+                {application.report_types?.map((type) => (
+                  <Badge key={type} variant="secondary" className="text-xs">{type}</Badge>
+                ))}
+              </div>
+            </div>
+            {application.content_blocks && application.content_blocks.length > 0 && (
+              <>
+                <Separator />
+                <div>
+                  <span className="text-muted-foreground">채널 메인 안내 블록:</span>
+                  <div className="mt-2 space-y-2">
+                    {application.content_blocks.map((block) => (
+                      <div
+                        key={block.id}
+                        className="rounded border p-3 prose prose-sm max-w-none [&>*:first-child]:mt-0 [&>*:last-child]:mb-0"
+                        dangerouslySetInnerHTML={{ __html: block.content }}
+                      />
+                    ))}
+                  </div>
                 </div>
               </>
             )}
@@ -194,19 +225,19 @@ export default function AdminApplicationDetailPage() {
               <div className="flex gap-3">
                 <Button
                   onClick={() => handleAction("approve")}
-                  disabled={processing}
+                  disabled={processingAction !== null}
                   className="flex-1"
                 >
-                  {processing ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Check className="w-4 h-4 mr-2" />}
+                  {processingAction === "approve" ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Check className="w-4 h-4 mr-2" />}
                   승인
                 </Button>
                 <Button
                   onClick={() => handleAction("reject")}
-                  disabled={processing}
+                  disabled={processingAction !== null}
                   variant="destructive"
                   className="flex-1"
                 >
-                  {processing ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <X className="w-4 h-4 mr-2" />}
+                  {processingAction === "reject" ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <X className="w-4 h-4 mr-2" />}
                   거절
                 </Button>
               </div>

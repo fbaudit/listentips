@@ -7,13 +7,33 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, Save, Send, ShieldCheck, Mail, MessageSquare } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Loader2, Save, Send, ShieldCheck, Mail, MessageSquare, Users } from "lucide-react";
 import { toast } from "sonner";
+
+const MENU_ITEMS = [
+  { key: "dashboard", label: "대시보드" },
+  { key: "users", label: "사용자 관리" },
+  { key: "companies", label: "기업 관리" },
+  { key: "reports", label: "리포트" },
+  { key: "codes", label: "코드 관리" },
+  { key: "subscriptions", label: "구독 관리" },
+  { key: "applications", label: "신청 관리" },
+  { key: "settings", label: "설정" },
+] as const;
+
+const EDITABLE_ROLES = [
+  { key: "admin", label: "일반 관리자" },
+  { key: "other_admin", label: "기타 관리자" },
+] as const;
+
+type RolePermissions = Record<string, string[]>;
 
 interface LoginSecuritySettings {
   max_attempts: number;
   lockout_minutes: number;
   captcha_enabled: boolean;
+  two_factor_enabled: boolean;
 }
 
 interface EmailSettings {
@@ -44,6 +64,7 @@ export default function AdminSettingsPage() {
     max_attempts: 5,
     lockout_minutes: 15,
     captcha_enabled: true,
+    two_factor_enabled: true,
   });
 
   const [email, setEmail] = useState<EmailSettings>({
@@ -53,7 +74,7 @@ export default function AdminSettingsPage() {
     secure: false,
     user: "",
     password: "",
-    from_name: "모두의 제보채널",
+    from_name: "모두의 제보채널 Listen",
     from_email: "",
     enabled: false,
   });
@@ -65,6 +86,12 @@ export default function AdminSettingsPage() {
     enabled: false,
   });
 
+  const [rolePermissions, setRolePermissions] = useState<RolePermissions>({
+    super_admin: MENU_ITEMS.map((m) => m.key),
+    admin: ["dashboard", "companies", "reports", "applications"],
+    other_admin: ["dashboard", "companies", "reports", "applications"],
+  });
+
   useEffect(() => {
     async function fetchSettings() {
       try {
@@ -72,9 +99,10 @@ export default function AdminSettingsPage() {
         if (res.ok) {
           const data = await res.json();
           const s = data.settings;
-          if (s.login_security) setSecurity(s.login_security);
+          if (s.login_security) setSecurity((prev) => ({ ...prev, ...s.login_security }));
           if (s.email_settings) setEmail(s.email_settings);
           if (s.sms_settings) setSms(s.sms_settings);
+          if (s.role_permissions) setRolePermissions((prev) => ({ ...prev, ...s.role_permissions }));
         }
       } catch {
         toast.error("설정을 불러오는데 실패했습니다");
@@ -176,6 +204,10 @@ export default function AdminSettingsPage() {
             <MessageSquare className="w-4 h-4" />
             SMS 설정
           </TabsTrigger>
+          <TabsTrigger value="roles" className="gap-2">
+            <Users className="w-4 h-4" />
+            역할 권한
+          </TabsTrigger>
         </TabsList>
 
         {/* Security Settings */}
@@ -236,6 +268,20 @@ export default function AdminSettingsPage() {
                   checked={security.captcha_enabled}
                   onCheckedChange={(checked) =>
                     setSecurity({ ...security, captcha_enabled: checked })
+                  }
+                />
+              </div>
+              <div className="flex items-center justify-between rounded-lg border p-4">
+                <div className="space-y-0.5">
+                  <Label>2차 인증 (이메일/SMS)</Label>
+                  <p className="text-xs text-muted-foreground">
+                    로그인 시 이메일 또는 SMS로 인증번호를 발송하여 2차 인증을 수행합니다
+                  </p>
+                </div>
+                <Switch
+                  checked={security.two_factor_enabled}
+                  onCheckedChange={(checked) =>
+                    setSecurity({ ...security, two_factor_enabled: checked })
                   }
                 />
               </div>
@@ -346,7 +392,7 @@ export default function AdminSettingsPage() {
                   <Label htmlFor="from_name">발신자 이름</Label>
                   <Input
                     id="from_name"
-                    placeholder="모두의 제보채널"
+                    placeholder="모두의 제보채널 Listen"
                     value={email.from_name}
                     onChange={(e) =>
                       setEmail({ ...email, from_name: e.target.value })
@@ -385,6 +431,79 @@ export default function AdminSettingsPage() {
                   disabled={saving === "email_settings"}
                 >
                   {saving === "email_settings" ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <Save className="w-4 h-4 mr-2" />
+                  )}
+                  저장
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Role Permissions */}
+        <TabsContent value="roles">
+          <Card>
+            <CardHeader>
+              <CardTitle>역할별 메뉴 권한</CardTitle>
+              <CardDescription>
+                관리자 역할별로 접근할 수 있는 메뉴를 설정합니다. 슈퍼 관리자는 항상 모든 메뉴에 접근할 수 있습니다.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="rounded-lg border overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="bg-muted/50">
+                      <th className="text-left font-medium px-4 py-3 border-b">메뉴</th>
+                      <th className="text-center font-medium px-4 py-3 border-b">
+                        <div className="flex flex-col items-center gap-0.5">
+                          <span>슈퍼 관리자</span>
+                          <span className="text-xs text-muted-foreground font-normal">전체 접근</span>
+                        </div>
+                      </th>
+                      {EDITABLE_ROLES.map((role) => (
+                        <th key={role.key} className="text-center font-medium px-4 py-3 border-b">
+                          {role.label}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {MENU_ITEMS.map((menu) => (
+                      <tr key={menu.key} className="border-b last:border-b-0 hover:bg-muted/30">
+                        <td className="px-4 py-3 font-medium">{menu.label}</td>
+                        <td className="text-center px-4 py-3">
+                          <Checkbox checked disabled className="opacity-50" />
+                        </td>
+                        {EDITABLE_ROLES.map((role) => (
+                          <td key={role.key} className="text-center px-4 py-3">
+                            <Checkbox
+                              checked={rolePermissions[role.key]?.includes(menu.key) ?? false}
+                              onCheckedChange={(checked) => {
+                                setRolePermissions((prev) => {
+                                  const current = prev[role.key] || [];
+                                  const updated = checked
+                                    ? [...current, menu.key]
+                                    : current.filter((k) => k !== menu.key);
+                                  return { ...prev, [role.key]: updated };
+                                });
+                              }}
+                            />
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <div className="flex justify-end">
+                <Button
+                  onClick={() => saveSetting("role_permissions", rolePermissions)}
+                  disabled={saving === "role_permissions"}
+                >
+                  {saving === "role_permissions" ? (
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                   ) : (
                     <Save className="w-4 h-4 mr-2" />

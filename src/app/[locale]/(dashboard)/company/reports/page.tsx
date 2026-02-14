@@ -40,7 +40,10 @@ export default function CompanyReportsPage() {
         if (search) params.set("search", search);
         if (statusFilter !== "all") params.set("status", statusFilter);
 
-        const res = await fetch(`/api/reports?${params}`);
+        const encKey = sessionStorage.getItem("encryptionKey");
+        const headers: Record<string, string> = {};
+        if (encKey) headers["x-encryption-key"] = encKey;
+        const res = await fetch(`/api/reports?${params}`, { headers });
         if (res.ok) {
           const data = await res.json();
           setReports(data.reports || []);

@@ -161,11 +161,11 @@
       "reportTitle": "举报标题",
       "reportContent": "举报内容",
       "attachments": "附件",
-      "attachmentHelp": "PDF、JPG、PNG、DOC、DOCX、XLS、XLSX（单个10MB，总计50MB）",
+      "attachmentHelp": "PDF、JPG、PNG、TXT、DOC、DOCX、XLS、XLSX（单个最大10MB，总计50MB以下）",
       "password": "确认密码",
       "passwordConfirm": "确认密码",
       "passwordHelp": "查看举报时需要的密码（8位以上）",
-      "aiValidate": "AI验证",
+      "aiValidate": "5W1H验证",
       "aiValidating": "AI正在验证中...",
       "submitReport": "提交举报",
       "submitting": "提交中..."
@@ -294,6 +294,9 @@
       "copyUrl": "复制URL",
       "activate": "激活",
       "deactivate": "停用"
+    },
+    "reports": {
+      "title": "举报管理"
     },
     "codes": {
       "title": "代码管理",

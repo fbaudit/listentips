@@ -2,12 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { verifyCaptcha } from "@/lib/utils/captcha";
 import { verifyPassword } from "@/lib/utils/password";
+import { sendVerificationCodeToUser, maskEmail, maskPhone } from "@/lib/utils/verification-code";
 import crypto from "crypto";
 
 interface LoginSecuritySettings {
   max_attempts: number;
   lockout_minutes: number;
   captcha_enabled: boolean;
+  two_factor_enabled: boolean;
 }
 
 function hashIP(ip: string): string {
@@ -16,7 +18,7 @@ function hashIP(ip: string): string {
 
 export async function POST(request: NextRequest) {
   const body = await request.json();
-  const { username, password, captchaToken } = body;
+  const { username, password, captchaToken, channel } = body;
 
   if (!username || !password) {
     return NextResponse.json(
@@ -34,14 +36,17 @@ export async function POST(request: NextRequest) {
     .eq("key", "login_security")
     .single();
 
-  const settings: LoginSecuritySettings = settingsRow?.value || {
+  const settings: LoginSecuritySettings = {
     max_attempts: 5,
     lockout_minutes: 15,
     captcha_enabled: true,
+    two_factor_enabled: true,
+    ...settingsRow?.value,
   };
 
-  // 2. Verify CAPTCHA if enabled
-  if (settings.captcha_enabled) {
+  // 2. Verify CAPTCHA if enabled (skip if server secret key is not configured)
+  const turnstileSecretKey = process.env.TURNSTILE_SECRET_KEY;
+  if (settings.captcha_enabled && turnstileSecretKey) {
     if (!captchaToken) {
       return NextResponse.json(
         { error: "CAPTCHA 인증이 필요합니다" },
@@ -119,7 +124,7 @@ export async function POST(request: NextRequest) {
   // 4. Verify credentials
   const { data: user, error } = await supabase
     .from("users")
-    .select("id, username, password_hash, role, company_id, is_active, valid_from, valid_to")
+    .select("id, username, password_hash, role, company_id, is_active, valid_from, valid_to, email, mobile")
     .eq("username", username)
     .single();
 
@@ -192,19 +197,59 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // 5. Success - record and respond
-  await supabase.from("login_attempts").insert({
-    username,
-    ip_hash: ipHash,
-    success: true,
-  });
+  // 5. Credentials valid — check if 2FA is enabled
+  // Platform-level 2FA must be enabled first
+  let twoFactorActive = settings.two_factor_enabled;
+
+  // If platform 2FA is enabled, also check company-level 2FA setting
+  if (twoFactorActive && user.company_id) {
+    const { data: company } = await supabase
+      .from("companies")
+      .select("two_factor_enabled")
+      .eq("id", user.company_id)
+      .single();
+
+    if (company && !company.two_factor_enabled) {
+      twoFactorActive = false;
+    }
+  }
+
+  if (!twoFactorActive) {
+    // 2FA disabled: record success and allow direct login
+    await supabase.from("login_attempts").insert({
+      username,
+      ip_hash: ipHash,
+      success: true,
+    });
+    return NextResponse.json({ directLogin: true });
+  }
+
+  // 6. Send 2FA verification code
+  const sendChannel = channel === "sms" ? "sms" : "email";
+  const { success: codeSent, sentVia, error: sendError } = await sendVerificationCodeToUser(
+    user.id,
+    user.email,
+    user.mobile,
+    sendChannel
+  );
+
+  if (!codeSent) {
+    console.error("2FA code send failed:", sendError);
+    return NextResponse.json(
+      { error: `인증번호 발송에 실패했습니다: ${sendError || "이메일/SMS 설정을 확인해주세요."}` },
+      { status: 500 }
+    );
+  }
+
+  // Build masked contact info for display
+  const maskedEmail = maskEmail(user.email);
+  const maskedMobile = user.mobile ? maskPhone(user.mobile) : null;
 
   return NextResponse.json({
-    success: true,
-    user: {
-      id: user.id,
-      role: user.role,
-      companyId: user.company_id,
-    },
+    requiresVerification: true,
+    userId: user.id,
+    sentVia,
+    maskedEmail,
+    maskedMobile,
   });
 }

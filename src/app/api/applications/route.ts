@@ -2,10 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { hashPassword } from "@/lib/utils/password";
 import { adminAuth } from "@/lib/auth/admin-auth";
+import { isAdminRole } from "@/lib/auth/guards";
 
 export async function GET() {
   const session = await adminAuth();
-  if (!session?.user || session.user.role !== "super_admin") {
+  if (!session?.user || !isAdminRole(session.user.role)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -35,8 +36,11 @@ export async function POST(request: NextRequest) {
       employeeCount,
       address,
       department,
+      channelName,
       reportTypes,
       welcomeMessage,
+      reportGuideMessage,
+      contentBlocks,
       displayFields,
       preferredLocale,
       useAiValidation,
@@ -94,8 +98,11 @@ export async function POST(request: NextRequest) {
         employee_count: employeeCount || null,
         address: address || null,
         department: department || null,
+        channel_name: channelName || null,
         report_types: reportTypes || [],
         welcome_message: welcomeMessage || null,
+        report_guide_message: reportGuideMessage || null,
+        content_blocks: contentBlocks || [],
         display_fields: displayFields || null,
         preferred_locale: preferredLocale || "ko",
         use_ai_validation: useAiValidation || false,

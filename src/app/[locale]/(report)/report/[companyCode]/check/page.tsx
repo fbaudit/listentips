@@ -34,7 +34,7 @@ export default function ReportCheckPage() {
       const res = await fetch("/api/report-check", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: JSON.stringify({ ...data, companyCode }),
       });
 
       const result = await res.json();

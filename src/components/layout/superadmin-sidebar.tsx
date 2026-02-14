@@ -8,6 +8,7 @@ import {
   LayoutDashboard,
   Users,
   Building2,
+  FileText,
   Code,
   CreditCard,
   FileCheck,
@@ -16,18 +17,27 @@ import {
 } from "lucide-react";
 
 const navItems = [
-  { href: "/admin/dashboard", icon: LayoutDashboard, labelKey: "dashboard.title" },
-  { href: "/admin/users", icon: Users, labelKey: "users.title" },
-  { href: "/admin/companies", icon: Building2, labelKey: "companies.title" },
-  { href: "/admin/codes", icon: Code, labelKey: "codes.title" },
-  { href: "/admin/subscriptions", icon: CreditCard, labelKey: "subscriptions.title" },
-  { href: "/admin/applications", icon: FileCheck, labelKey: "applications.title" },
-  { href: "/admin/settings", icon: Settings, labelKey: "settings.title" },
+  { key: "dashboard", href: "/admin/dashboard", icon: LayoutDashboard, labelKey: "dashboard.title" },
+  { key: "users", href: "/admin/users", icon: Users, labelKey: "users.title" },
+  { key: "companies", href: "/admin/companies", icon: Building2, labelKey: "companies.title" },
+  { key: "reports", href: "/admin/reports", icon: FileText, labelKey: "reports.title" },
+  { key: "codes", href: "/admin/codes", icon: Code, labelKey: "codes.title" },
+  { key: "subscriptions", href: "/admin/subscriptions", icon: CreditCard, labelKey: "subscriptions.title" },
+  { key: "applications", href: "/admin/applications", icon: FileCheck, labelKey: "applications.title" },
+  { key: "settings", href: "/admin/settings", icon: Settings, labelKey: "settings.title" },
 ];
 
-export function SuperAdminSidebar() {
+interface SuperAdminSidebarProps {
+  allowedMenus?: string[];
+}
+
+export function SuperAdminSidebar({ allowedMenus }: SuperAdminSidebarProps) {
   const pathname = usePathname();
   const t = useTranslations("admin");
+
+  const filteredItems = allowedMenus
+    ? navItems.filter((item) => allowedMenus.includes(item.key))
+    : navItems;
 
   return (
     <aside className="hidden lg:flex w-64 flex-col border-r bg-card min-h-screen">
@@ -36,7 +46,7 @@ export function SuperAdminSidebar() {
         <span className="font-bold">Super Admin</span>
       </div>
       <nav className="flex-1 px-3 py-4 space-y-1">
-        {navItems.map((item) => {
+        {filteredItems.map((item) => {
           const isActive = pathname.includes(item.href);
           return (
             <Link

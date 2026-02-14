@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { useTranslations } from "next-intl";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -11,8 +10,21 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, Send, Loader2, Download, FileText } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { ArrowLeft, Send, Loader2, Download, FileText, Lock, Key, Clock, Trash2, History, Pencil, X, Check } from "lucide-react";
 import { Link } from "@/i18n/routing";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import { EncryptionKeyDialog } from "@/components/shared/encryption-key-dialog";
 
 interface ReportDetail {
   id: string;
@@ -26,7 +38,7 @@ interface ReportDetail {
   why_field: string | null;
   how_field: string | null;
   report_type: { id: string; type_name: string; type_name_en: string } | null;
-  status: { id: string; status_name: string; status_name_en: string; color_code: string } | null;
+  status: { id: string; status_name: string; status_name_en: string; color_code: string; is_default: boolean } | null;
   ai_validation_score: number | null;
   attachments: Array<{ id: string; file_name: string; file_size: number; mime_type: string }>;
   created_at: string;
@@ -46,10 +58,41 @@ interface ReportStatus {
   color_code: string;
 }
 
+interface AccessLog {
+  id: string;
+  accessed_at: string;
+  ip_hash: string | null;
+}
+
+interface EditHistoryEntry {
+  id: string;
+  field_name: string;
+  old_value: string | null;
+  new_value: string | null;
+  edited_by: string;
+  edited_at: string;
+}
+
+function fieldNameLabel(fieldName: string): string {
+  const labels: Record<string, string> = {
+    title: "제목",
+    content: "내용",
+    status_id: "상태",
+    attachment_added: "첨부파일 추가",
+    attachment_removed: "첨부파일 삭제",
+  };
+  return labels[fieldName] || fieldName;
+}
+
+function getEncryptionHeaders(): Record<string, string> {
+  const key = typeof window !== "undefined" ? sessionStorage.getItem("encryptionKey") : null;
+  return key ? { "x-encryption-key": key } : {};
+}
+
 export default function CompanyReportDetailPage() {
   const params = useParams();
+  const router = useRouter();
   const reportId = params.id as string;
-  const t = useTranslations("company");
   const [report, setReport] = useState<ReportDetail | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState("");
@@ -60,37 +103,63 @@ export default function CompanyReportDetailPage() {
   const [loading, setLoading] = useState(true);
   const [statusChanging, setStatusChanging] = useState(false);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const [encKeyDialogOpen, setEncKeyDialogOpen] = useState(false);
+  const [isEncrypted, setIsEncrypted] = useState(false);
+  const [accessLogs, setAccessLogs] = useState<AccessLog[]>([]);
+  const [editHistory, setEditHistory] = useState<EditHistoryEntry[]>([]);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  // Comment edit/delete state
+  const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
+  const [editCommentContent, setEditCommentContent] = useState("");
+  const [savingComment, setSavingComment] = useState(false);
+
+  const fetchReportData = async () => {
+    try {
+      const headers = getEncryptionHeaders();
+      const [reportRes, commentsRes, statusesRes, logsRes, historyRes] = await Promise.all([
+        fetch(`/api/reports/${reportId}`, { headers }),
+        fetch(`/api/reports/${reportId}/comments`, { headers }),
+        fetch("/api/company/report-statuses"),
+        fetch(`/api/reports/${reportId}/access-logs`),
+        fetch(`/api/reports/${reportId}/edit-history`),
+      ]);
+      if (reportRes.ok) {
+        const data = await reportRes.json();
+        setReport(data.report);
+        // Check if content is still encrypted (server couldn't decrypt)
+        const encrypted = data.report?.title === "[암호화됨]" || data.report?.content === "[암호화됨]";
+        setIsEncrypted(encrypted);
+        if (data.report?.status?.status_name) {
+          setNewStatus(data.report.status.status_name);
+        }
+      }
+      if (commentsRes.ok) {
+        const data = await commentsRes.json();
+        setComments(data.comments || []);
+      }
+      if (statusesRes.ok) {
+        const data = await statusesRes.json();
+        setStatuses(data.statuses || []);
+      }
+      if (logsRes.ok) {
+        const data = await logsRes.json();
+        setAccessLogs(data.logs || []);
+      }
+      if (historyRes.ok) {
+        const data = await historyRes.json();
+        setEditHistory(data.history || []);
+      }
+    } catch {
+      // ignore
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    async function fetchData() {
-      try {
-        const [reportRes, commentsRes, statusesRes] = await Promise.all([
-          fetch(`/api/reports/${reportId}`),
-          fetch(`/api/reports/${reportId}/comments`),
-          fetch("/api/company/report-statuses"),
-        ]);
-        if (reportRes.ok) {
-          const data = await reportRes.json();
-          setReport(data.report);
-          if (data.report?.status?.status_name) {
-            setNewStatus(data.report.status.status_name);
-          }
-        }
-        if (commentsRes.ok) {
-          const data = await commentsRes.json();
-          setComments(data.comments || []);
-        }
-        if (statusesRes.ok) {
-          const data = await statusesRes.json();
-          setStatuses(data.statuses || []);
-        }
-      } catch {
-        // ignore
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchData();
+    fetchReportData();
   }, [reportId]);
 
   const handleDownload = async (attachmentId: string) => {
@@ -127,8 +196,8 @@ export default function CompanyReportDetailPage() {
         body: JSON.stringify({ statusName: newStatus }),
       });
       if (res.ok) {
-        // Re-fetch report to get updated status
-        const reportRes = await fetch(`/api/reports/${reportId}`);
+        const headers = getEncryptionHeaders();
+        const reportRes = await fetch(`/api/reports/${reportId}`, { headers });
         if (reportRes.ok) {
           const data = await reportRes.json();
           setReport(data.report);
@@ -167,6 +236,68 @@ export default function CompanyReportDetailPage() {
     }
   };
 
+  const handleEditComment = async (commentId: string) => {
+    if (!editCommentContent.trim()) return;
+    setSavingComment(true);
+    try {
+      const res = await fetch(`/api/reports/${reportId}/comments`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ commentId, content: editCommentContent }),
+      });
+      if (res.ok) {
+        setComments((prev) =>
+          prev.map((c) => c.id === commentId ? { ...c, content: editCommentContent.trim() } : c)
+        );
+        setEditingCommentId(null);
+      }
+    } catch {
+      toast.error("댓글 수정 중 오류가 발생했습니다");
+    } finally {
+      setSavingComment(false);
+    }
+  };
+
+  const handleDeleteComment = async (commentId: string) => {
+    try {
+      const res = await fetch(`/api/reports/${reportId}/comments?commentId=${commentId}`, {
+        method: "DELETE",
+      });
+      if (res.ok) {
+        setComments((prev) => prev.filter((c) => c.id !== commentId));
+      }
+    } catch {
+      toast.error("댓글 삭제 중 오류가 발생했습니다");
+    }
+  };
+
+  const handleKeyVerified = () => {
+    // Re-fetch data with the new key
+    setLoading(true);
+    fetchReportData();
+  };
+
+  const handleDeleteReport = async () => {
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/reports/${reportId}`, { method: "DELETE" });
+      const data = await res.json();
+      if (res.ok) {
+        toast.success("제보가 삭제되었습니다");
+        setDeleteDialogOpen(false);
+        router.push("/company/reports");
+      } else {
+        toast.error(data.error || "삭제에 실패했습니다");
+        setDeleteDialogOpen(false);
+      }
+    } catch {
+      toast.error("삭제 중 오류가 발생했습니다");
+      setDeleteDialogOpen(false);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -190,6 +321,23 @@ export default function CompanyReportDetailPage() {
         </Button>
       </div>
 
+      {/* Encryption notice */}
+      {isEncrypted && (
+        <div className="flex items-center justify-between p-4 rounded-lg border border-amber-200 bg-amber-50">
+          <div className="flex items-center gap-3">
+            <Lock className="w-5 h-5 text-amber-600" />
+            <div>
+              <p className="font-medium text-amber-800">제보 내용이 암호화되어 있습니다</p>
+              <p className="text-sm text-amber-600">암호화 키를 입력하면 내용을 확인할 수 있습니다</p>
+            </div>
+          </div>
+          <Button size="sm" onClick={() => setEncKeyDialogOpen(true)}>
+            <Key className="w-4 h-4 mr-2" />
+            키 입력
+          </Button>
+        </div>
+      )}
+
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Report Detail */}
         <div className="lg:col-span-2 space-y-6">
@@ -200,16 +348,29 @@ export default function CompanyReportDetailPage() {
                   <p className="font-mono text-sm text-muted-foreground">{report.report_number}</p>
                   <CardTitle className="text-xl mt-1">{report.title}</CardTitle>
                 </div>
-                <Badge
-                  style={report.status?.color_code ? { backgroundColor: report.status.color_code, color: "#fff" } : {}}
-                >
-                  {report.status?.status_name || "-"}
-                </Badge>
+                <div className="flex items-center gap-2">
+                  <Badge
+                    style={report.status?.color_code ? { backgroundColor: report.status.color_code, color: "#fff" } : {}}
+                  >
+                    {report.status?.status_name || "-"}
+                  </Badge>
+                  {report.status?.is_default && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-destructive hover:text-destructive"
+                      onClick={() => setDeleteDialogOpen(true)}
+                    >
+                      <Trash2 className="w-4 h-4 mr-1" />
+                      삭제
+                    </Button>
+                  )}
+                </div>
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="prose prose-sm max-w-none">
-                <p className="whitespace-pre-wrap">{report.content}</p>
+                <p className="whitespace-pre-wrap break-words">{report.content}</p>
               </div>
 
               {/* 5W1H */}
@@ -285,31 +446,82 @@ export default function CompanyReportDetailPage() {
                 <div className="space-y-3">
                   {comments.map((c) => {
                     const isMe = c.author_type !== "reporter";
+                    const isEditingThis = editingCommentId === c.id;
                     return (
                       <div
                         key={c.id}
-                        className={`flex ${isMe ? "justify-end" : "justify-start"}`}
+                        className={`group flex ${isMe ? "justify-end" : "justify-start"}`}
                       >
-                        <div
-                          className={`max-w-[75%] p-3 rounded-2xl text-sm ${
-                            isMe
-                              ? c.is_internal
-                                ? "bg-yellow-100 border border-yellow-300 rounded-br-sm"
-                                : "bg-primary text-primary-foreground rounded-br-sm"
-                              : "bg-muted border rounded-bl-sm"
-                          }`}
-                        >
-                          <div className={`flex items-center gap-2 mb-1 ${isMe ? "justify-end" : ""}`}>
-                            <span className="font-medium text-xs">
-                              {c.author_type === "reporter" ? "제보자" : "관리자"}
-                            </span>
-                            {c.is_internal && <Badge variant="outline" className="text-xs">내부 메모</Badge>}
+                        {isEditingThis ? (
+                          <div className="max-w-[75%] space-y-2">
+                            <Textarea
+                              value={editCommentContent}
+                              onChange={(e) => setEditCommentContent(e.target.value)}
+                              rows={3}
+                              className="text-sm"
+                            />
+                            <div className="flex gap-1 justify-end">
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-7 w-7"
+                                onClick={() => setEditingCommentId(null)}
+                              >
+                                <X className="h-3.5 w-3.5" />
+                              </Button>
+                              <Button
+                                size="icon"
+                                className="h-7 w-7"
+                                disabled={savingComment}
+                                onClick={() => handleEditComment(c.id)}
+                              >
+                                {savingComment ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
+                              </Button>
+                            </div>
                           </div>
-                          <p className="whitespace-pre-wrap">{c.content}</p>
-                          <p className={`text-xs mt-1 ${isMe ? (c.is_internal ? "text-yellow-600" : "text-primary-foreground/70") : "text-muted-foreground"} ${isMe ? "text-right" : ""}`}>
-                            {new Date(c.created_at).toLocaleString("ko")}
-                          </p>
-                        </div>
+                        ) : (
+                          <div className="flex items-start gap-1">
+                            {isMe && (
+                              <div className="hidden group-hover:flex gap-0.5 mt-2 shrink-0">
+                                <button
+                                  className="text-muted-foreground hover:text-foreground p-0.5"
+                                  onClick={() => {
+                                    setEditingCommentId(c.id);
+                                    setEditCommentContent(c.content);
+                                  }}
+                                >
+                                  <Pencil className="h-3 w-3" />
+                                </button>
+                                <button
+                                  className="text-muted-foreground hover:text-destructive p-0.5"
+                                  onClick={() => handleDeleteComment(c.id)}
+                                >
+                                  <Trash2 className="h-3 w-3" />
+                                </button>
+                              </div>
+                            )}
+                            <div
+                              className={`max-w-[75%] p-3 rounded-2xl text-sm ${
+                                isMe
+                                  ? c.is_internal
+                                    ? "bg-yellow-100 border border-yellow-300 rounded-br-sm"
+                                    : "bg-primary text-primary-foreground rounded-br-sm"
+                                  : "bg-muted border rounded-bl-sm"
+                              }`}
+                            >
+                              <div className={`flex items-center gap-2 mb-1 ${isMe ? "justify-end" : ""}`}>
+                                <span className="font-medium text-xs">
+                                  {c.author_type === "reporter" ? "제보자" : "관리자"}
+                                </span>
+                                {c.is_internal && <Badge variant="outline" className="text-xs">내부 메모</Badge>}
+                              </div>
+                              <p className="whitespace-pre-wrap break-words">{c.content}</p>
+                              <p className={`text-xs mt-1 ${isMe ? (c.is_internal ? "text-yellow-600" : "text-primary-foreground/70") : "text-muted-foreground"} ${isMe ? "text-right" : ""}`}>
+                                {new Date(c.created_at).toLocaleString("ko")}
+                              </p>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     );
                   })}
@@ -397,8 +609,119 @@ export default function CompanyReportDetailPage() {
               </div>
             </CardContent>
           </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Clock className="w-4 h-4" />
+                제보자 접속 이력
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {accessLogs.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-2">접속 이력이 없습니다</p>
+              ) : (
+                <div className="space-y-2 text-sm">
+                  {accessLogs.map((log) => (
+                    <div key={log.id} className="flex justify-between items-center py-1 border-b last:border-0">
+                      <span>{new Date(log.accessed_at).toLocaleString("ko")}</span>
+                      {log.ip_hash && (
+                        <span className="font-mono text-xs text-muted-foreground">{log.ip_hash}</span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <History className="w-4 h-4" />
+                수정 이력
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {editHistory.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-2">수정 이력이 없습니다</p>
+              ) : (
+                <div className="space-y-3 max-h-96 overflow-y-auto">
+                  {editHistory.map((entry) => (
+                    <div key={entry.id} className="border-b last:border-0 pb-2 last:pb-0">
+                      <div className="flex items-center justify-between mb-1">
+                        <Badge variant="outline" className="text-xs">
+                          {fieldNameLabel(entry.field_name)}
+                        </Badge>
+                        <span className="text-xs text-muted-foreground">
+                          {new Date(entry.edited_at).toLocaleString("ko")}
+                        </span>
+                      </div>
+                      {(entry.field_name === "title" || entry.field_name === "content") && (
+                        <div className="text-xs space-y-1">
+                          {entry.old_value && (
+                            <div className="bg-red-50 text-red-700 rounded px-2 py-1 line-through break-all">
+                              {entry.old_value.length > 100 ? entry.old_value.substring(0, 100) + "..." : entry.old_value}
+                            </div>
+                          )}
+                          {entry.new_value && (
+                            <div className="bg-green-50 text-green-700 rounded px-2 py-1 break-all">
+                              {entry.new_value.length > 100 ? entry.new_value.substring(0, 100) + "..." : entry.new_value}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                      {entry.field_name === "attachment_added" && (
+                        <p className="text-xs text-green-600">+ {entry.new_value}</p>
+                      )}
+                      {entry.field_name === "attachment_removed" && (
+                        <p className="text-xs text-red-600">- {entry.old_value}</p>
+                      )}
+                      {entry.field_name === "status_id" && (
+                        <p className="text-xs text-muted-foreground">상태 변경</p>
+                      )}
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {entry.edited_by === "reporter" ? "제보자" : "관리자"}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
       </div>
+
+      {/* Encryption Key Dialog */}
+      <EncryptionKeyDialog
+        open={encKeyDialogOpen}
+        onOpenChange={setEncKeyDialogOpen}
+        onKeyVerified={handleKeyVerified}
+      />
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>제보 삭제</AlertDialogTitle>
+            <AlertDialogDescription>
+              제보번호 <strong>{report.report_number}</strong>을(를) 삭제하시겠습니까?
+              삭제된 제보는 복구할 수 없으며, 첨부파일과 모든 대화 내역이 함께 삭제됩니다.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>취소</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteReport}
+              disabled={deleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              삭제
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
