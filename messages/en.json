@@ -175,6 +175,7 @@
       "reportNumber": "Report Number",
       "warning": "Please save your report number!",
       "warningDetail": "You need both the report number and password to check your report. They cannot be recovered if lost.",
+      "copied": "Report number copied",
       "goBack": "Go Back"
     },
     "check": {

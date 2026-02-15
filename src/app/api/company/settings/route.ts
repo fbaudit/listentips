@@ -37,13 +37,26 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const body = await request.json();
   const supabase = createAdminClient();
+
+  // Only managers can modify settings
+  const { data: requester } = await supabase
+    .from("users")
+    .select("company_role")
+    .eq("id", session.user.id)
+    .single();
+
+  if (requester?.company_role !== "manager") {
+    return NextResponse.json({ error: "권한이 없습니다" }, { status: 403 });
+  }
+
+  const body = await request.json();
 
   const allowedFields = [
     "name", "name_en", "business_number", "representative_name",
     "industry", "employee_count", "address", "phone", "email", "website",
     "description", "channel_name", "welcome_message", "report_guide_message",
+    "submission_success_title", "submission_success_message",
     "primary_color", "use_ai_validation", "use_chatbot", "preferred_locale",
     "content_blocks", "ai_provider",
     "block_foreign_ip", "allowed_countries", "ip_blocklist",
@@ -110,7 +123,7 @@ export async function PATCH(request: NextRequest) {
 
   if (error) {
     console.error("Settings update error:", error);
-    return NextResponse.json({ error: `Update failed: ${error.message}` }, { status: 500 });
+    return NextResponse.json({ error: "설정 업데이트에 실패했습니다" }, { status: 500 });
   }
 
   return NextResponse.json({ message: "Updated" });

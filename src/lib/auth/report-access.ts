@@ -17,10 +17,12 @@ export type ReportAccessResult =
  *
  * @param request - The incoming request
  * @param reportIdentifier - Report ID (UUID) or report_number
+ * @param reporterToken - Optional reporter token (fallback for FormData uploads)
  */
 export async function verifyReportAccess(
   request: NextRequest,
-  reportIdentifier: string
+  reportIdentifier: string,
+  reporterToken?: string
 ): Promise<ReportAccessResult> {
   const supabase = createAdminClient();
 
@@ -37,11 +39,11 @@ export async function verifyReportAccess(
     return { authorized: false };
   }
 
-  // 1. Check Bearer token (reporter access)
+  // 1. Check Bearer token (reporter access) - from header or explicit parameter
   const authHeader = request.headers.get("authorization");
-  if (authHeader?.startsWith("Bearer ")) {
-    const token = authHeader.slice(7);
-    const tokenData = verifyReporterToken(token);
+  const tokenStr = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : reporterToken;
+  if (tokenStr) {
+    const tokenData = verifyReporterToken(tokenStr);
 
     if (tokenData && tokenData.reportId === report.id && tokenData.companyId === report.company_id) {
       return { authorized: true, role: "reporter", reportId: report.id, companyId: report.company_id };

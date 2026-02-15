@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { sanitizeHtml } from "@/lib/utils/sanitize";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -196,7 +197,7 @@ export default function AdminApplicationDetailPage() {
                       <div
                         key={block.id}
                         className="rounded border p-3 prose prose-sm max-w-none [&>*:first-child]:mt-0 [&>*:last-child]:mb-0"
-                        dangerouslySetInnerHTML={{ __html: block.content }}
+                        dangerouslySetInnerHTML={{ __html: sanitizeHtml(block.content) }}
                       />
                     ))}
                   </div>

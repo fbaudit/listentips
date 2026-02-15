@@ -68,6 +68,11 @@ export async function POST(
   }
 
   const body = await request.json();
+
+  if (!body.content || body.content.length > 5000) {
+    return NextResponse.json({ error: "댓글 내용은 1~5000자여야 합니다" }, { status: 400 });
+  }
+
   const supabase = createAdminClient();
 
   // Encrypt comment content if company has encryption key
@@ -134,8 +139,8 @@ export async function PATCH(
   const body = await request.json();
   const { commentId, content } = body;
 
-  if (!commentId || !content?.trim()) {
-    return NextResponse.json({ error: "commentId and content are required" }, { status: 400 });
+  if (!commentId || !content?.trim() || content.trim().length > 5000) {
+    return NextResponse.json({ error: "commentId and content are required (max 5000 chars)" }, { status: 400 });
   }
 
   const supabase = createAdminClient();

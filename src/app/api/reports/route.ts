@@ -17,9 +17,9 @@ export async function GET(request: NextRequest) {
   const supabase = createAdminClient();
   const companyId = session.user.companyId;
   const { searchParams } = new URL(request.url);
-  const page = parseInt(searchParams.get("page") || "1");
-  const limit = parseInt(searchParams.get("limit") || "20");
-  const search = searchParams.get("search") || "";
+  const page = Math.max(1, parseInt(searchParams.get("page") || "1") || 1);
+  const limit = Math.min(100, Math.max(1, parseInt(searchParams.get("limit") || "20") || 20));
+  const search = (searchParams.get("search") || "").slice(0, 100);
   const statusFilter = searchParams.get("status") || "";
   const summary = searchParams.get("summary") === "true";
   const offset = (page - 1) * limit;
@@ -231,7 +231,11 @@ export async function POST(request: NextRequest) {
         title: encTitle,
         content: encContent,
         ai_validation_score: aiValidationScore ? parseFloat(aiValidationScore) : null,
-        ai_validation_feedback: aiValidationFeedback ? JSON.parse(aiValidationFeedback) : null,
+        ai_validation_feedback: (() => {
+          if (!aiValidationFeedback) return null;
+          try { return JSON.parse(aiValidationFeedback); }
+          catch { return null; }
+        })(),
         reporter_ip_hash: ipHash,
         reporter_locale: locale,
       })

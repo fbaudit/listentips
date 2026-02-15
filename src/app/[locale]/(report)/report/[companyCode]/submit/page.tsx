@@ -26,8 +26,9 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, Upload, Brain, CheckCircle, AlertTriangle, Copy, Sparkles } from "lucide-react";
+import { Loader2, Upload, Brain, CheckCircle, AlertTriangle, Copy, Check, Sparkles } from "lucide-react";
 import { reportSubmitSchema, type ReportSubmitInput, ALLOWED_FILE_TYPES, MAX_FILE_SIZE, MAX_TOTAL_SIZE } from "@/lib/validators/report";
+import { sanitizeHtml } from "@/lib/utils/sanitize";
 
 interface ReportType {
   id: string;
@@ -73,6 +74,9 @@ export default function ReportSubmitPage() {
   const [aiEnhanceLoading, setAiEnhanceLoading] = useState(false);
   const [showEnhanceDialog, setShowEnhanceDialog] = useState(false);
   const [enhancedContent, setEnhancedContent] = useState("");
+  const [submissionSuccessTitle, setSubmissionSuccessTitle] = useState("");
+  const [submissionSuccessMessage, setSubmissionSuccessMessage] = useState("");
+  const [copied, setCopied] = useState(false);
 
   const form = useForm<ReportSubmitInput>({
     resolver: zodResolver(reportSubmitSchema),
@@ -102,6 +106,12 @@ export default function ReportSubmitPage() {
           }
           if (data.company.require_special_chars) {
             setRequireSpecialChars(true);
+          }
+          if (data.company.submission_success_title) {
+            setSubmissionSuccessTitle(data.company.submission_success_title);
+          }
+          if (data.company.submission_success_message) {
+            setSubmissionSuccessMessage(data.company.submission_success_message);
           }
         }
       })
@@ -251,7 +261,7 @@ export default function ReportSubmitPage() {
       <Card className="max-w-md mx-auto">
         <CardContent className="pt-8 text-center space-y-4">
           <CheckCircle className="h-16 w-16 text-green-500 mx-auto" />
-          <h2 className="text-2xl font-bold">{ts("title")}</h2>
+          <h2 className="text-2xl font-bold">{submissionSuccessTitle || ts("title")}</h2>
           <div className="bg-muted p-4 rounded-lg">
             <p className="text-sm text-muted-foreground mb-1">{ts("reportNumber")}</p>
             <div className="flex items-center justify-center gap-2">
@@ -259,18 +269,31 @@ export default function ReportSubmitPage() {
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => navigator.clipboard.writeText(reportNumber)}
+                onClick={() => {
+                  navigator.clipboard.writeText(reportNumber);
+                  setCopied(true);
+                  setTimeout(() => setCopied(false), 2000);
+                }}
               >
-                <Copy className="h-4 w-4" />
+                {copied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
               </Button>
             </div>
+            {copied && (
+              <p className="text-xs text-green-600 mt-1">{ts("copied")}</p>
+            )}
           </div>
           <Alert variant="destructive">
             <AlertTriangle className="h-4 w-4" />
             <AlertDescription>
-              <strong>{ts("warning")}</strong>
-              <br />
-              {ts("warningDetail")}
+              {submissionSuccessMessage ? (
+                <span style={{ whiteSpace: "pre-line" }}>{submissionSuccessMessage}</span>
+              ) : (
+                <>
+                  <strong>{ts("warning")}</strong>
+                  <br />
+                  {ts("warningDetail")}
+                </>
+              )}
             </AlertDescription>
           </Alert>
           <Button
@@ -310,7 +333,7 @@ export default function ReportSubmitPage() {
             return selectedType?.description ? (
               <div
                 className="text-sm text-muted-foreground bg-muted/50 rounded-md px-3 py-2 prose prose-sm max-w-none [&>*:first-child]:mt-0 [&>*:last-child]:mb-0"
-                dangerouslySetInnerHTML={{ __html: selectedType.description }}
+                dangerouslySetInnerHTML={{ __html: sanitizeHtml(selectedType.description) }}
               />
             ) : null;
           })()}
@@ -341,7 +364,7 @@ export default function ReportSubmitPage() {
           {form.formState.errors.content && (
             <p className="text-sm text-destructive">{form.formState.errors.content.message}</p>
           )}
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Button type="button" variant="outline" size="sm" onClick={handleAiValidate}>
               <Brain className="h-4 w-4 mr-2" />
               {t("aiValidate")}

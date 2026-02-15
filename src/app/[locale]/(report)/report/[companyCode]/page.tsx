@@ -6,6 +6,7 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { FileText, Search, Shield, Loader2 } from "lucide-react";
+import { sanitizeHtml } from "@/lib/utils/sanitize";
 
 interface ContentBlock {
   id: string;
@@ -111,7 +112,7 @@ export default function ReportMainPage() {
                 <CardContent className="pt-5 pb-5">
                   <div
                     className="prose prose-sm max-w-none text-left text-muted-foreground [&_strong]:text-foreground [&_p]:my-1"
-                    dangerouslySetInnerHTML={{ __html: block.content }}
+                    dangerouslySetInnerHTML={{ __html: sanitizeHtml(block.content) }}
                   />
                 </CardContent>
               </Card>

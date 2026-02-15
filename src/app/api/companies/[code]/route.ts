@@ -11,7 +11,7 @@ export async function GET(
 
   const { data: company, error } = await supabase
     .from("companies")
-    .select("id, name, name_en, logo_url, primary_color, channel_name, welcome_message, report_guide_message, use_ai_validation, use_chatbot, preferred_locale, content_blocks, service_end, block_foreign_ip, allowed_countries, ip_blocklist, min_password_length, require_special_chars")
+    .select("id, name, name_en, logo_url, primary_color, channel_name, welcome_message, report_guide_message, use_ai_validation, use_chatbot, preferred_locale, content_blocks, service_end, block_foreign_ip, allowed_countries, ip_blocklist, min_password_length, require_special_chars, submission_success_title, submission_success_message")
     .eq("company_code", code)
     .eq("is_active", true)
     .single();

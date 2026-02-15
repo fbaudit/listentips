@@ -3,6 +3,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { auth } from "@/lib/auth/auth";
 import { hashPassword } from "@/lib/utils/password";
 
+const VALID_COMPANY_ROLES = ["manager", "user", "other"];
+
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -15,6 +17,27 @@ export async function PATCH(
   const { id } = await params;
   const body = await request.json();
   const supabase = createAdminClient();
+
+  // Check requester's company_role — only managers can modify staff
+  const { data: requester } = await supabase
+    .from("users")
+    .select("company_role")
+    .eq("id", session.user.id)
+    .single();
+
+  if (requester?.company_role !== "manager") {
+    return NextResponse.json({ error: "권한이 없습니다" }, { status: 403 });
+  }
+
+  // Prevent self-demotion and self-disable
+  if (id === session.user.id) {
+    if (body.company_role && body.company_role !== "manager") {
+      return NextResponse.json({ error: "자기 자신의 역할은 변경할 수 없습니다" }, { status: 400 });
+    }
+    if (body.is_active === false) {
+      return NextResponse.json({ error: "자기 자신은 비활성화할 수 없습니다" }, { status: 400 });
+    }
+  }
 
   // Verify ownership
   const { data: existing } = await supabase
@@ -34,6 +57,9 @@ export async function PATCH(
   if (body.phone !== undefined) updateData.phone = body.phone;
   if (body.mobile !== undefined) updateData.mobile = body.mobile;
   if (body.is_active !== undefined) updateData.is_active = body.is_active;
+  if (body.company_role !== undefined && VALID_COMPANY_ROLES.includes(body.company_role)) {
+    updateData.company_role = body.company_role;
+  }
   if (body.password) {
     updateData.password_hash = await hashPassword(body.password);
   }
@@ -67,6 +93,17 @@ export async function DELETE(
 
   const { id } = await params;
   const supabase = createAdminClient();
+
+  // Only managers can delete staff
+  const { data: requester } = await supabase
+    .from("users")
+    .select("company_role")
+    .eq("id", session.user.id)
+    .single();
+
+  if (requester?.company_role !== "manager") {
+    return NextResponse.json({ error: "권한이 없습니다" }, { status: 403 });
+  }
 
   // Cannot delete self
   if (id === session.user.id) {

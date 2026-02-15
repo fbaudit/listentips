@@ -2,6 +2,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { notFound } from "next/navigation";
 import { Shield } from "lucide-react";
 import { LanguageSwitcher } from "@/components/layout/language-switcher";
+import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { ChatbotWidget } from "@/components/shared/chatbot-widget";
 import { Link } from "@/i18n/routing";
 
@@ -28,13 +29,16 @@ export default async function ReportCompanyLayout({
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 py-8 max-w-3xl">
+      <div className="container mx-auto px-3 sm:px-4 py-6 sm:py-8 max-w-3xl">
         <div className="flex items-center justify-between mb-6">
           <Link href={`/report/${companyCode}`} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
             <Shield className="h-5 w-5 text-primary" />
             <span className="font-semibold text-sm">{company.name}</span>
           </Link>
-          <LanguageSwitcher />
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+            <LanguageSwitcher />
+          </div>
         </div>
         {children}
       </div>

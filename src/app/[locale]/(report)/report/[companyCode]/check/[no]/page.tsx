@@ -34,6 +34,7 @@ import {
   FileText,
   AlertTriangle,
   Upload,
+  Paperclip,
 } from "lucide-react";
 
 interface ReportDetail {
@@ -93,6 +94,12 @@ export default function ReportDetailPage() {
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
   const [editCommentContent, setEditCommentContent] = useState("");
   const [savingComment, setSavingComment] = useState(false);
+
+  // Comment attachment state
+  const [commentFiles, setCommentFiles] = useState<File[]>([]);
+  const commentFileRef = useRef<HTMLInputElement>(null);
+  const [downloadingCommentAttId, setDownloadingCommentAttId] = useState<string | null>(null);
+  const [commentError, setCommentError] = useState("");
 
   function getToken() {
     return sessionStorage.getItem(`report_token_${reportNumber}`);
@@ -341,10 +348,28 @@ export default function ReportDetailPage() {
     }
   }
 
+  // Comment file handlers
+  function handleCommentFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const added = Array.from(e.target.files || []);
+    const valid = added.filter((f) => ALLOWED_FILE_TYPES.includes(f.type) && f.size <= MAX_FILE_SIZE);
+    const totalSize = [...commentFiles, ...valid].reduce((s, f) => s + f.size, 0);
+    if (totalSize > 10 * 1024 * 1024) {
+      setError("첨부파일 크기는 10MB를 초과할 수 없습니다");
+      return;
+    }
+    setCommentFiles((prev) => [...prev, ...valid]);
+    e.target.value = "";
+  }
+
+  function removeCommentFile(index: number) {
+    setCommentFiles((prev) => prev.filter((_, i) => i !== index));
+  }
+
   // Comment handler
   async function handleComment() {
-    if (!newComment.trim()) return;
+    if (!newComment.trim() && commentFiles.length === 0) return;
     setCommenting(true);
+    setCommentError("");
 
     const token = getToken();
     try {
@@ -355,27 +380,113 @@ export default function ReportDetailPage() {
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          content: newComment,
+          content: newComment || " ",
           authorType: "reporter",
         }),
       });
 
       if (res.ok) {
         const data = await res.json();
-        setComments([...comments, data.comment]);
+        let attachments: { id: string; file_name: string; file_size: number }[] = [];
+
+        // Upload files to the comment
+        if (commentFiles.length > 0) {
+          const formData = new FormData();
+          formData.append("commentId", data.comment.id);
+          formData.append("reporterToken", token || "");
+          commentFiles.forEach((file) => formData.append("files", file));
+
+          try {
+            const uploadRes = await fetch(`/api/reports/${reportNumber}/comments/attachments`, {
+              method: "POST",
+              headers: { Authorization: `Bearer ${token}` },
+              body: formData,
+            });
+
+            if (uploadRes.ok) {
+              const uploadData = await uploadRes.json();
+              attachments = uploadData.attachments || [];
+              if (uploadData.errors?.length > 0) {
+                setCommentError(uploadData.errors.join("\n"));
+              }
+            } else {
+              const errData = await uploadRes.json().catch(() => ({}));
+              setCommentError(errData.error || "첨부파일 업로드에 실패했습니다");
+            }
+          } catch {
+            setCommentError("첨부파일 업로드 중 오류가 발생했습니다");
+          }
+        }
+
+        setComments([...comments, { ...data.comment, attachments }]);
         setNewComment("");
+        setCommentFiles([]);
+      } else {
+        setCommentError("메시지 전송에 실패했습니다");
       }
     } catch {
-      setError("댓글 작성 중 오류가 발생했습니다");
+      setCommentError("메시지 전송 중 오류가 발생했습니다");
     } finally {
       setCommenting(false);
+    }
+  }
+
+  // Comment attachment download
+  async function handleCommentAttachmentDownload(attachmentId: string) {
+    setDownloadingCommentAttId(attachmentId);
+    const token = getToken();
+    try {
+      const res = await fetch(`/api/reports/${reportNumber}/comments/attachments/${attachmentId}?token=${encodeURIComponent(token || "")}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const fileRes = await fetch(data.url);
+        const blob = await fileRes.blob();
+        const blobUrl = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = blobUrl;
+        link.download = data.fileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(blobUrl);
+      }
+    } catch {
+      setError("파일 다운로드에 실패했습니다");
+    } finally {
+      setDownloadingCommentAttId(null);
+    }
+  }
+
+  // Comment attachment delete
+  async function handleDeleteCommentAttachment(commentId: string, attachmentId: string) {
+    const token = getToken();
+    try {
+      const res = await fetch(`/api/reports/${reportNumber}/comments/attachments/${attachmentId}?token=${encodeURIComponent(token || "")}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        setComments((prev) =>
+          prev.map((c) =>
+            c.id === commentId
+              ? { ...c, attachments: (c.attachments || []).filter((a) => a.id !== attachmentId) }
+              : c
+          )
+        );
+      }
+    } catch {
+      setError("파일 삭제에 실패했습니다");
     }
   }
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      handleComment();
+      if (newComment.trim() || commentFiles.length > 0) {
+        handleComment();
+      }
     }
   }
 
@@ -671,7 +782,7 @@ export default function ReportDetailPage() {
         </CardHeader>
         <CardContent className="p-0">
           {/* Chat area */}
-          <div className="px-4 py-3 space-y-3 max-h-[500px] overflow-y-auto bg-muted/20">
+          <div className="px-4 py-3 space-y-3 max-h-[60vh] overflow-y-auto bg-muted/20">
             {publicComments.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-8">
                 아직 커뮤니케이션 내역이 없습니다
@@ -727,14 +838,50 @@ export default function ReportDetailPage() {
                         </div>
                       ) : (
                         <div className={`flex items-end gap-1.5 ${isReporter ? "flex-row-reverse" : ""}`}>
-                          <div
-                            className={`rounded-2xl px-3.5 py-2 text-sm whitespace-pre-wrap break-words ${
-                              isReporter
-                                ? "bg-primary text-primary-foreground rounded-br-sm"
-                                : "bg-white dark:bg-muted border rounded-bl-sm"
-                            }`}
-                          >
-                            {comment.content}
+                          <div className="space-y-1">
+                            <div
+                              className={`rounded-2xl px-3.5 py-2 text-sm whitespace-pre-wrap break-words ${
+                                isReporter
+                                  ? "bg-primary text-primary-foreground rounded-br-sm"
+                                  : "bg-white dark:bg-muted border rounded-bl-sm"
+                              }`}
+                            >
+                              {comment.content}
+                            </div>
+                            {/* Comment attachments */}
+                            {comment.attachments?.length > 0 && (
+                              <div className="space-y-1">
+                                {comment.attachments.map((att) => (
+                                  <div
+                                    key={att.id}
+                                    className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs ${
+                                      isReporter ? "bg-primary/10" : "bg-muted"
+                                    }`}
+                                  >
+                                    <FileText className="h-3 w-3 shrink-0 text-muted-foreground" />
+                                    <button
+                                      className="truncate hover:underline text-left"
+                                      onClick={() => handleCommentAttachmentDownload(att.id)}
+                                      disabled={downloadingCommentAttId === att.id}
+                                    >
+                                      {downloadingCommentAttId === att.id ? (
+                                        <Loader2 className="h-3 w-3 animate-spin inline" />
+                                      ) : (
+                                        att.file_name
+                                      )}
+                                    </button>
+                                    {isReporter && (
+                                      <button
+                                        className="shrink-0 text-muted-foreground hover:text-destructive"
+                                        onClick={() => handleDeleteCommentAttachment(comment.id, att.id)}
+                                      >
+                                        <X className="h-3 w-3" />
+                                      </button>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
                           </div>
                           <div className="flex flex-col items-center gap-0.5 shrink-0 pb-0.5">
                             <span className="text-[10px] text-muted-foreground">
@@ -771,8 +918,48 @@ export default function ReportDetailPage() {
           </div>
 
           {/* Input area */}
-          <div className="border-t p-3">
+          <div className="border-t p-3 space-y-2">
+            {/* Upload error */}
+            {commentError && (
+              <div className="text-sm text-destructive bg-destructive/10 rounded-lg px-3 py-2 whitespace-pre-line">
+                {commentError}
+              </div>
+            )}
+            {/* Selected files preview */}
+            {commentFiles.length > 0 && (
+              <div className="flex flex-wrap gap-1.5">
+                {commentFiles.map((file, i) => (
+                  <div key={i} className="flex items-center gap-1 bg-muted rounded-full px-2.5 py-1 text-xs">
+                    <FileText className="h-3 w-3 shrink-0" />
+                    <span className="truncate max-w-[120px]">{file.name}</span>
+                    <button onClick={() => removeCommentFile(i)} className="text-muted-foreground hover:text-destructive">
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            <p className="text-[11px] text-muted-foreground">
+              첨부 가능: PDF, JPG, PNG, GIF, TXT, DOC, DOCX, XLS, XLSX (최대 10MB)
+            </p>
             <div className="flex gap-2 items-end">
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="shrink-0 h-10 w-10"
+                onClick={() => commentFileRef.current?.click()}
+              >
+                <Paperclip className="h-4 w-4" />
+              </Button>
+              <input
+                ref={commentFileRef}
+                type="file"
+                multiple
+                accept=".pdf,.jpg,.jpeg,.png,.gif,.doc,.docx,.xls,.xlsx,.txt"
+                onChange={handleCommentFileChange}
+                className="hidden"
+              />
               <Textarea
                 value={newComment}
                 onChange={(e) => setNewComment(e.target.value)}
@@ -783,7 +970,7 @@ export default function ReportDetailPage() {
               />
               <Button
                 onClick={handleComment}
-                disabled={commenting || !newComment.trim()}
+                disabled={commenting || (!newComment.trim() && commentFiles.length === 0)}
                 size="icon"
                 className="shrink-0 rounded-full h-10 w-10"
               >

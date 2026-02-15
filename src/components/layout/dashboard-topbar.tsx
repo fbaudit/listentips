@@ -1,7 +1,7 @@
 "use client";
 
 import { signOut, useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -12,13 +12,17 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Bell, LogOut, User, Menu } from "lucide-react";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { DashboardSidebar } from "./dashboard-sidebar";
+import { SuperAdminSidebar } from "./superadmin-sidebar";
 import { LanguageSwitcher } from "./language-switcher";
+import { ThemeToggle } from "./theme-toggle";
 
 export function DashboardTopbar() {
   const { data: session } = useSession();
   const router = useRouter();
+  const pathname = usePathname();
+  const isSuperAdmin = pathname.includes("/admin/");
 
   const handleLogout = async () => {
     const loginUrl =
@@ -40,12 +44,14 @@ export function DashboardTopbar() {
             </Button>
           </SheetTrigger>
           <SheetContent side="left" className="p-0 w-64">
-            <DashboardSidebar />
+            <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
+            {isSuperAdmin ? <SuperAdminSidebar mobile /> : <DashboardSidebar mobile />}
           </SheetContent>
         </Sheet>
       </div>
 
       <div className="flex items-center gap-3">
+        <ThemeToggle />
         <LanguageSwitcher />
         <Button variant="ghost" size="icon" className="relative">
           <Bell className="h-4 w-4" />

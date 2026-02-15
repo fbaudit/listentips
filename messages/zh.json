@@ -175,6 +175,7 @@
       "reportNumber": "受理编号",
       "warning": "请务必记录受理编号！",
       "warningDetail": "受理编号和密码是查看举报时必需的。丢失后无法恢复。",
+      "copied": "受理编号已复制",
       "goBack": "返回"
     },
     "check": {

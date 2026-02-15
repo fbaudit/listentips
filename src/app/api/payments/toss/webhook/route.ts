@@ -1,9 +1,40 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import crypto from "crypto";
+
+function verifyTossSignature(body: string, signature: string | null): boolean {
+  const secretKey = process.env.TOSS_WEBHOOK_SECRET;
+  if (!secretKey) {
+    console.error("TOSS_WEBHOOK_SECRET is not configured");
+    return false;
+  }
+  if (!signature) return false;
+
+  const expected = crypto
+    .createHmac("sha256", secretKey)
+    .update(body)
+    .digest("base64");
+
+  const sigBuf = Buffer.from(signature);
+  const expectedBuf = Buffer.from(expected);
+  if (sigBuf.length !== expectedBuf.length) return false;
+  return crypto.timingSafeEqual(sigBuf, expectedBuf);
+}
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
+    const rawBody = await request.text();
+    const signature = request.headers.get("x-toss-signature");
+
+    // Verify webhook signature if secret is configured
+    if (process.env.TOSS_WEBHOOK_SECRET) {
+      if (!verifyTossSignature(rawBody, signature)) {
+        console.error("Toss webhook signature verification failed");
+        return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
+      }
+    }
+
+    const body = JSON.parse(rawBody);
     const { eventType, data } = body;
 
     const supabase = createAdminClient();

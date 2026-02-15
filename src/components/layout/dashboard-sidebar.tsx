@@ -1,36 +1,59 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { useTranslations } from "next-intl";
 import { cn } from "@/lib/utils";
+import { getCompanyMenuPermissions, type CompanyMenuKey } from "@/lib/auth/company-permissions";
 import {
   LayoutDashboard,
   FileText,
   Settings,
   CreditCard,
-  Shield,
+  Building2,
 } from "lucide-react";
 
 const navItems = [
-  { href: "/company/dashboard", icon: LayoutDashboard, labelKey: "dashboard.title" },
-  { href: "/company/reports", icon: FileText, labelKey: "reports.title" },
-  { href: "/company/settings", icon: Settings, labelKey: "settings.title" },
-  { href: "/company/subscription", icon: CreditCard, labelKey: "subscription.title" },
+  { key: "dashboard" as CompanyMenuKey, href: "/company/dashboard", icon: LayoutDashboard, labelKey: "dashboard.title" },
+  { key: "reports" as CompanyMenuKey, href: "/company/reports", icon: FileText, labelKey: "reports.title" },
+  { key: "settings" as CompanyMenuKey, href: "/company/settings", icon: Settings, labelKey: "settings.title" },
+  { key: "subscription" as CompanyMenuKey, href: "/company/subscription", icon: CreditCard, labelKey: "subscription.title" },
 ];
 
-export function DashboardSidebar() {
+export function DashboardSidebar({ mobile }: { mobile?: boolean } = {}) {
   const pathname = usePathname();
+  const { data: session } = useSession();
   const t = useTranslations("company");
+  const [companyName, setCompanyName] = useState<string | null>(session?.user?.companyName || null);
+
+  useEffect(() => {
+    if (session?.user?.companyName) {
+      setCompanyName(session.user.companyName);
+      return;
+    }
+    if (!session?.user?.companyId) return;
+
+    fetch("/api/company/settings")
+      .then((res) => res.ok ? res.json() : null)
+      .then((data) => {
+        if (data?.company?.name) setCompanyName(data.company.name);
+      })
+      .catch(() => {});
+  }, [session?.user?.companyName, session?.user?.companyId]);
+
+  const allowedMenus = getCompanyMenuPermissions(session?.user?.companyRole);
+  const filteredItems = navItems.filter((item) => allowedMenus.includes(item.key));
 
   return (
-    <aside className="hidden lg:flex w-64 flex-col border-r bg-card min-h-screen">
+    <aside className={cn("w-64 flex-col border-r bg-card min-h-screen", mobile ? "flex" : "hidden lg:flex")}>
       <div className="flex items-center gap-2 px-6 py-4 border-b">
-        <Shield className="h-6 w-6 text-primary" />
-        <span className="font-bold">관리자</span>
+        <Building2 className="h-6 w-6 text-primary" />
+        <span className="font-bold truncate">{companyName || "Listen"}</span>
       </div>
       <nav className="flex-1 px-3 py-4 space-y-1">
-        {navItems.map((item) => {
+        {filteredItems.map((item) => {
           const isActive = pathname.includes(item.href);
           return (
             <Link

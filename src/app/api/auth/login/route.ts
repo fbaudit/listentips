@@ -44,9 +44,16 @@ export async function POST(request: NextRequest) {
     ...settingsRow?.value,
   };
 
-  // 2. Verify CAPTCHA if enabled (skip if server secret key is not configured)
-  const turnstileSecretKey = process.env.TURNSTILE_SECRET_KEY;
-  if (settings.captcha_enabled && turnstileSecretKey) {
+  // 2. Verify CAPTCHA if enabled (fail-closed: block if key is missing)
+  if (settings.captcha_enabled) {
+    const turnstileSecretKey = process.env.TURNSTILE_SECRET_KEY;
+    if (!turnstileSecretKey) {
+      console.error("CAPTCHA is enabled but TURNSTILE_SECRET_KEY is not configured");
+      return NextResponse.json(
+        { error: "서버 보안 설정 오류입니다. 관리자에게 문의하세요." },
+        { status: 500 }
+      );
+    }
     if (!captchaToken) {
       return NextResponse.json(
         { error: "CAPTCHA 인증이 필요합니다" },

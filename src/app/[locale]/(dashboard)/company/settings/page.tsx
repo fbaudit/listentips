@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { sanitizeHtml } from "@/lib/utils/sanitize";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -28,8 +29,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2, Save, Plus, Pencil, Trash2, Bell, UserPlus, Copy, ExternalLink, Link2, GripVertical, X, Key, Lock, ShieldCheck, Globe, Clock, KeyRound, Sparkles, MessageCircle } from "lucide-react";
+import { Loader2, Save, Plus, Pencil, Trash2, Bell, UserPlus, Copy, ExternalLink, Link2, GripVertical, X, Key, Lock, ShieldCheck, Globe, Clock, KeyRound, Sparkles, MessageCircle, QrCode, Download } from "lucide-react";
 import { toast } from "sonner";
+import { QRCodeSVG } from "qrcode.react";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import { EncryptionKeyGenerateDialog } from "@/components/shared/encryption-key-dialog";
 
@@ -68,6 +70,8 @@ interface CompanySettings {
   min_password_length: number;
   require_special_chars: boolean;
   two_factor_enabled: boolean;
+  submission_success_title: string | null;
+  submission_success_message: string | null;
 }
 
 interface ReportType {
@@ -103,6 +107,7 @@ interface StaffMember {
   phone: string;
   mobile: string;
   role: string;
+  company_role: string;
   is_active: boolean;
   created_at: string;
 }
@@ -158,7 +163,7 @@ export default function CompanySettingsPage() {
   const [staffDialogOpen, setStaffDialogOpen] = useState(false);
   const [editingStaff, setEditingStaff] = useState<StaffMember | null>(null);
   const [staffForm, setStaffForm] = useState({
-    name: "", email: "", username: "", password: "", phone: "", mobile: "",
+    name: "", email: "", username: "", password: "", phone: "", mobile: "", company_role: "manager",
   });
   const [staffSaving, setStaffSaving] = useState(false);
 
@@ -565,10 +570,11 @@ export default function CompanySettingsPage() {
       setStaffForm({
         name: s.name, email: s.email, username: s.username,
         password: "", phone: s.phone || "", mobile: s.mobile || "",
+        company_role: s.company_role || "manager",
       });
     } else {
       setEditingStaff(null);
-      setStaffForm({ name: "", email: "", username: "", password: "", phone: "", mobile: "" });
+      setStaffForm({ name: "", email: "", username: "", password: "", phone: "", mobile: "", company_role: "manager" });
     }
     setStaffDialogOpen(true);
   };
@@ -590,6 +596,7 @@ export default function CompanySettingsPage() {
           email: staffForm.email,
           phone: staffForm.phone,
           mobile: staffForm.mobile,
+          company_role: staffForm.company_role,
         };
         if (staffForm.password) body.password = staffForm.password;
         const res = await fetch(`/api/company/staff/${editingStaff.id}`, {
@@ -710,6 +717,7 @@ export default function CompanySettingsPage() {
           <TabsTrigger value="channel">채널설정</TabsTrigger>
           <TabsTrigger value="staff">담당자정보</TabsTrigger>
           <TabsTrigger value="security">보안</TabsTrigger>
+          <TabsTrigger value="etc">기타</TabsTrigger>
         </TabsList>
 
         {/* ═══════ Tab 1: 회사정보 ═══════ */}
@@ -956,6 +964,28 @@ export default function CompanySettingsPage() {
                     placeholder="제보 내용을 상세히 작성해주세요. 누가, 무엇을, 언제, 어디서, 왜, 어떻게 했는지 포함해주세요."
                   />
                   <p className="text-xs text-muted-foreground">제보 접수 화면의 제보 내용 입력란에 회색 안내문구로 표시됩니다</p>
+                </div>
+                <Separator />
+                <div className="space-y-2">
+                  <Label htmlFor="submissionSuccessTitle">접수 완료 제목</Label>
+                  <Input
+                    id="submissionSuccessTitle"
+                    value={settings.submission_success_title || ""}
+                    onChange={(e) => setSettings((s) => s ? { ...s, submission_success_title: e.target.value } : s)}
+                    placeholder="제보가 접수되었습니다"
+                  />
+                  <p className="text-xs text-muted-foreground">제보 접수 완료 화면에 접수번호 위에 표시되는 제목입니다. 비워두면 기본 메시지가 표시됩니다.</p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="submissionSuccessMessage">접수 완료 안내 메시지</Label>
+                  <Textarea
+                    id="submissionSuccessMessage"
+                    value={settings.submission_success_message || ""}
+                    onChange={(e) => setSettings((s) => s ? { ...s, submission_success_message: e.target.value } : s)}
+                    rows={3}
+                    placeholder="접수번호를 반드시 기록해 주세요! 접수번호와 비밀번호는 제보 확인 시 필요합니다. 분실 시 복구할 수 없습니다."
+                  />
+                  <p className="text-xs text-muted-foreground">제보 접수 완료 화면에 접수번호 아래에 표시되는 안내 메시지입니다. 비워두면 기본 메시지가 표시됩니다.</p>
                 </div>
                 <Separator />
 
@@ -1286,7 +1316,7 @@ export default function CompanySettingsPage() {
                           {rt.description ? (
                             <div
                               className="prose prose-sm max-w-none line-clamp-2 [&>p]:m-0"
-                              dangerouslySetInnerHTML={{ __html: rt.description }}
+                              dangerouslySetInnerHTML={{ __html: sanitizeHtml(rt.description) }}
                             />
                           ) : (
                             "-"
@@ -1405,8 +1435,14 @@ export default function CompanySettingsPage() {
                       <div className="space-y-1">
                         <div className="flex items-center gap-2">
                           <span className="font-medium">{s.name}</span>
-                          <Badge variant="outline">{s.role === "company_admin" ? "관리자" : s.role}</Badge>
-                          {!s.is_active && <Badge variant="secondary">비활성</Badge>}
+                          <Badge variant={
+                            s.company_role === "manager" ? "default" :
+                            s.company_role === "user" ? "secondary" : "outline"
+                          }>
+                            {s.company_role === "manager" ? "관리자" :
+                             s.company_role === "user" ? "일반사용자" : "기타"}
+                          </Badge>
+                          {!s.is_active && <Badge variant="destructive">비활성</Badge>}
                         </div>
                         <div className="flex items-center gap-4 text-sm text-muted-foreground">
                           <span>{s.email}</span>
@@ -1417,7 +1453,25 @@ export default function CompanySettingsPage() {
                           아이디: {s.username} · 등록일: {new Date(s.created_at).toLocaleDateString("ko")}
                         </p>
                       </div>
-                      <div className="flex items-center gap-1">
+                      <div className="flex items-center gap-2">
+                        <Switch
+                          checked={s.is_active}
+                          onCheckedChange={async (checked) => {
+                            const res = await fetch(`/api/company/staff/${s.id}`, {
+                              method: "PATCH",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({ is_active: checked }),
+                            });
+                            if (res.ok) {
+                              toast.success(checked ? "담당자가 활성화되었습니다" : "담당자가 비활성화되었습니다");
+                              loadStaff();
+                            } else {
+                              const data = await res.json();
+                              toast.error(data.error || "상태 변경에 실패했습니다");
+                            }
+                          }}
+                          title={s.is_active ? "활성" : "비활성"}
+                        />
                         <Button
                           variant="ghost"
                           size="icon"
@@ -1720,6 +1774,161 @@ export default function CompanySettingsPage() {
             </>
           )}
         </TabsContent>
+
+        {/* ═══════ Tab 5: 기타 ═══════ */}
+        <TabsContent value="etc" className="mt-6 space-y-6">
+          {settings?.company_code && (
+            <>
+              {/* QR 코드 */}
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center gap-2">
+                    <QrCode className="w-5 h-5 text-primary" />
+                    <div>
+                      <CardTitle>QR 코드</CardTitle>
+                      <CardDescription>제보 접수 페이지로 연결되는 QR 코드입니다. 다운로드하여 사내 게시판, 포스터 등에 활용하세요.</CardDescription>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex flex-col sm:flex-row items-start gap-6">
+                    <div className="p-4 bg-white rounded-lg border shadow-sm" id="qr-code-container">
+                      <QRCodeSVG
+                        value={`${typeof window !== "undefined" ? window.location.origin : "https://listentips.com"}/report/${settings.company_code}`}
+                        size={200}
+                        level="H"
+                        includeMargin
+                      />
+                    </div>
+                    <div className="flex-1 space-y-3">
+                      <div className="space-y-1">
+                        <Label className="text-muted-foreground">연결 URL</Label>
+                        <p className="font-mono text-sm break-all">
+                          {typeof window !== "undefined" ? window.location.origin : "https://listentips.com"}/report/{settings.company_code}
+                        </p>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            const svg = document.querySelector("#qr-code-container svg");
+                            if (!svg) return;
+                            const svgData = new XMLSerializer().serializeToString(svg);
+                            const canvas = document.createElement("canvas");
+                            const ctx = canvas.getContext("2d");
+                            const img = new Image();
+                            img.onload = () => {
+                              canvas.width = img.width * 2;
+                              canvas.height = img.height * 2;
+                              ctx!.fillStyle = "#ffffff";
+                              ctx!.fillRect(0, 0, canvas.width, canvas.height);
+                              ctx!.drawImage(img, 0, 0, canvas.width, canvas.height);
+                              const pngUrl = canvas.toDataURL("image/png");
+                              const link = document.createElement("a");
+                              link.download = `listen-qr-${settings!.company_code}.png`;
+                              link.href = pngUrl;
+                              link.click();
+                            };
+                            img.src = "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(svgData)));
+                          }}
+                        >
+                          <Download className="w-4 h-4 mr-2" />
+                          PNG 다운로드
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            const svg = document.querySelector("#qr-code-container svg");
+                            if (!svg) return;
+                            const svgData = new XMLSerializer().serializeToString(svg);
+                            const blob = new Blob([svgData], { type: "image/svg+xml" });
+                            const url = URL.createObjectURL(blob);
+                            const link = document.createElement("a");
+                            link.download = `listen-qr-${settings!.company_code}.svg`;
+                            link.href = url;
+                            link.click();
+                            URL.revokeObjectURL(url);
+                          }}
+                        >
+                          <Download className="w-4 h-4 mr-2" />
+                          SVG 다운로드
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* 단축 URL */}
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center gap-2">
+                    <Link2 className="w-5 h-5 text-primary" />
+                    <div>
+                      <CardTitle>단축 URL</CardTitle>
+                      <CardDescription>제보 접수 페이지의 단축 URL입니다. 이메일, 메신저 등으로 간편하게 공유할 수 있습니다.</CardDescription>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-3">
+                    <div className="space-y-2">
+                      <Label className="text-muted-foreground">제보 접수 페이지</Label>
+                      <div className="flex items-center gap-2">
+                        <Input
+                          readOnly
+                          value={`${typeof window !== "undefined" ? window.location.origin : "https://listentips.com"}/r/${settings.company_code}`}
+                          className="bg-muted font-mono text-sm"
+                        />
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          title="URL 복사"
+                          onClick={() => {
+                            navigator.clipboard.writeText(
+                              `${window.location.origin}/r/${settings.company_code}`
+                            );
+                            toast.success("단축 URL이 복사되었습니다");
+                          }}
+                        >
+                          <Copy className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-muted-foreground">제보 확인 페이지</Label>
+                      <div className="flex items-center gap-2">
+                        <Input
+                          readOnly
+                          value={`${typeof window !== "undefined" ? window.location.origin : "https://listentips.com"}/r/${settings.company_code}/check`}
+                          className="bg-muted font-mono text-sm"
+                        />
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          title="URL 복사"
+                          onClick={() => {
+                            navigator.clipboard.writeText(
+                              `${window.location.origin}/r/${settings.company_code}/check`
+                            );
+                            toast.success("단축 URL이 복사되었습니다");
+                          }}
+                        >
+                          <Copy className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    단축 URL은 자동으로 제보 접수 페이지로 리디렉트됩니다.
+                  </p>
+                </CardContent>
+              </Card>
+            </>
+          )}
+        </TabsContent>
       </Tabs>
 
       {/* ═══════ Report Type Dialog ═══════ */}
@@ -1945,6 +2154,22 @@ export default function CompanySettingsPage() {
                   value={staffForm.name}
                   onChange={(e) => setStaffForm((f) => ({ ...f, name: e.target.value }))}
                 />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="staff_company_role">역할 *</Label>
+                <Select
+                  value={staffForm.company_role}
+                  onValueChange={(value) => setStaffForm((f) => ({ ...f, company_role: value }))}
+                >
+                  <SelectTrigger id="staff_company_role">
+                    <SelectValue placeholder="역할 선택" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="manager">관리자 (전체 메뉴)</SelectItem>
+                    <SelectItem value="user">일반사용자 (대시보드 + 제보관리)</SelectItem>
+                    <SelectItem value="other">기타 (대시보드만)</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-2">
                 <div className="flex items-center justify-between">

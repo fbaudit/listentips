@@ -2,6 +2,7 @@
 // In production, generate these with: npx supabase gen types typescript
 
 export type UserRole = "super_admin" | "admin" | "other_admin" | "company_admin";
+export type CompanyRole = "manager" | "user" | "other";
 export type ApplicationStatus = "pending" | "approved" | "rejected";
 export type SubscriptionPlan = "free_trial" | "monthly" | "yearly" | "premium_monthly" | "premium_yearly";
 export type SubscriptionStatus = "active" | "expired" | "cancelled" | "past_due";
@@ -67,6 +68,7 @@ export interface User {
   password_hash: string;
   name: string;
   role: UserRole;
+  company_role: CompanyRole;
   phone: string | null;
   mobile: string | null;
   country: string;

@@ -1,6 +1,13 @@
 import crypto from "crypto";
 
-const SECRET = process.env.NEXTAUTH_SECRET || "secret";
+function getSecret(): string {
+  const secret = process.env.NEXTAUTH_SECRET;
+  if (!secret) {
+    throw new Error("NEXTAUTH_SECRET is not configured");
+  }
+  return secret;
+}
+
 const TOKEN_EXPIRY_MS = 60 * 60 * 1000; // 1 hour
 
 /**
@@ -12,7 +19,7 @@ export function generateReporterToken(reportId: string, companyId: string): stri
   const payload = `${reportId}:${companyId}:${timestamp}`;
   const encoded = Buffer.from(payload).toString("base64url");
   const hmac = crypto
-    .createHmac("sha256", SECRET)
+    .createHmac("sha256", getSecret())
     .update(payload)
     .digest("hex");
   return `${encoded}.${hmac}`;
@@ -31,11 +38,14 @@ export function verifyReporterToken(
 
     const payload = Buffer.from(encoded, "base64url").toString("utf-8");
     const expectedHmac = crypto
-      .createHmac("sha256", SECRET)
+      .createHmac("sha256", getSecret())
       .update(payload)
       .digest("hex");
 
-    if (hmac !== expectedHmac) return null;
+    // Timing-safe comparison to prevent timing attacks
+    const hmacBuf = Buffer.from(hmac, "hex");
+    const expectedBuf = Buffer.from(expectedHmac, "hex");
+    if (hmacBuf.length !== expectedBuf.length || !crypto.timingSafeEqual(hmacBuf, expectedBuf)) return null;
 
     const [reportId, companyId, timestampStr] = payload.split(":");
     if (!reportId || !companyId || !timestampStr) return null;

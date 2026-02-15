@@ -6,6 +6,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { applicationSchema, type ApplicationInput } from "@/lib/validators/application";
 import { PLANS } from "@/lib/constants/plans";
+import { sanitizeHtml } from "@/lib/utils/sanitize";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,7 +15,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Building2, Settings, CreditCard, FileCheck, CheckCircle2, ArrowLeft, ArrowRight, Loader2, Check, X } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Building2, Settings, CreditCard, FileCheck, CheckCircle2, ArrowLeft, ArrowRight, Loader2, Check, X, Shield, FileText, Search, Upload, Brain, Sparkles, Eye } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Link } from "@/i18n/routing";
 
@@ -93,6 +100,8 @@ export default function ApplyPage() {
   const [stepValidated, setStepValidated] = useState<Record<number, boolean>>({});
   const [defaultReportTypes, setDefaultReportTypes] = useState<DefaultReportType[]>([]);
   const [defaultStatuses, setDefaultStatuses] = useState<DefaultReportStatus[]>([]);
+  const [showPreview, setShowPreview] = useState(false);
+  const [previewView, setPreviewView] = useState<"main" | "submit">("main");
   const [allContentBlocks, setAllContentBlocks] = useState<DefaultContentBlock[]>([]);
   const [selectedBlockIds, setSelectedBlockIds] = useState<Set<string>>(new Set());
 
@@ -695,7 +704,7 @@ export default function ApplyPage() {
                             </div>
                             <div
                               className="prose prose-sm max-w-none flex-1 [&>*:first-child]:mt-0 [&>*:last-child]:mb-0"
-                              dangerouslySetInnerHTML={{ __html: block.content }}
+                              dangerouslySetInnerHTML={{ __html: sanitizeHtml(block.content) }}
                             />
                           </div>
                         </div>
@@ -926,7 +935,7 @@ export default function ApplyPage() {
                               <div
                                 key={block.id}
                                 className="rounded border p-2 text-xs prose prose-sm max-w-none"
-                                dangerouslySetInnerHTML={{ __html: block.content }}
+                                dangerouslySetInnerHTML={{ __html: sanitizeHtml(block.content) }}
                               />
                             ))}
                         </div>
@@ -991,10 +1000,22 @@ export default function ApplyPage() {
               이전
             </Button>
             {currentStep < STEPS.length - 1 ? (
-              <Button type="button" onClick={handleNext}>
-                다음
-                <ArrowRight className="w-4 h-4 ml-2" />
-              </Button>
+              <div className="flex gap-2">
+                {currentStep === 1 && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => { setPreviewView("main"); setShowPreview(true); }}
+                  >
+                    <Eye className="w-4 h-4 mr-2" />
+                    미리보기
+                  </Button>
+                )}
+                <Button type="button" onClick={handleNext}>
+                  다음
+                  <ArrowRight className="w-4 h-4 ml-2" />
+                </Button>
+              </div>
             ) : (
               <Button type="button" onClick={handleSubmit} disabled={isSubmitting}>
                 {isSubmitting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
@@ -1004,6 +1025,202 @@ export default function ApplyPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Channel Preview Dialog */}
+      <Dialog open={showPreview} onOpenChange={setShowPreview}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto p-0">
+          <DialogHeader className="px-6 pt-6 pb-0">
+            <DialogTitle className="flex items-center gap-2">
+              <Eye className="w-5 h-5" />
+              제보 채널 미리보기
+            </DialogTitle>
+          </DialogHeader>
+
+          {/* Preview Navigation Tabs */}
+          <div className="flex border-b px-6">
+            <button
+              type="button"
+              onClick={() => setPreviewView("main")}
+              className={cn(
+                "px-4 py-2.5 text-sm font-medium border-b-2 transition-colors -mb-px",
+                previewView === "main"
+                  ? "border-primary text-primary"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
+              )}
+            >
+              메인 페이지
+            </button>
+            <button
+              type="button"
+              onClick={() => setPreviewView("submit")}
+              className={cn(
+                "px-4 py-2.5 text-sm font-medium border-b-2 transition-colors -mb-px",
+                previewView === "submit"
+                  ? "border-primary text-primary"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
+              )}
+            >
+              제보 접수 페이지
+            </button>
+          </div>
+
+          {/* Preview Content */}
+          <div className="bg-background rounded-b-lg">
+            {/* Simulated Header */}
+            <div className="px-6 pt-4 pb-2 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Shield className="h-5 w-5 text-primary" />
+                <span className="font-semibold text-sm">{watch("companyName") || "회사명"}</span>
+              </div>
+              <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded">미리보기</span>
+            </div>
+
+            <div className="px-6 pb-6">
+              {/* Main Page Preview */}
+              {previewView === "main" && (
+                <div className="text-center space-y-8 py-4">
+                  <div className="space-y-3">
+                    <div className="mx-auto w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
+                      <Shield className="h-8 w-8 text-primary" />
+                    </div>
+                    <h1 className="text-2xl md:text-3xl font-bold">
+                      {watch("channelName") || `${watch("companyName") || "기업명"} 제보채널`}
+                    </h1>
+                    <p className="text-muted-foreground max-w-md mx-auto">
+                      {watch("welcomeMessage") || "내부 비리, 부정행위 등을 안전하게 제보할 수 있습니다."}
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-lg mx-auto">
+                    <Card className="hover:shadow-md transition-shadow cursor-default h-full">
+                      <CardContent className="pt-6 text-center space-y-3">
+                        <div className="mx-auto w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
+                          <FileText className="h-6 w-6 text-primary" />
+                        </div>
+                        <h3 className="font-semibold">제보하기</h3>
+                      </CardContent>
+                    </Card>
+                    <Card className="hover:shadow-md transition-shadow cursor-default h-full">
+                      <CardContent className="pt-6 text-center space-y-3">
+                        <div className="mx-auto w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
+                          <Search className="h-6 w-6 text-primary" />
+                        </div>
+                        <h3 className="font-semibold">처리확인</h3>
+                      </CardContent>
+                    </Card>
+                  </div>
+
+                  {/* Content Blocks Preview */}
+                  {allContentBlocks.filter((b) => selectedBlockIds.has(b.id)).length > 0 && (
+                    <div className="space-y-4 max-w-lg mx-auto">
+                      {[...allContentBlocks]
+                        .filter((b) => selectedBlockIds.has(b.id))
+                        .sort((a, b) => a.display_order - b.display_order)
+                        .map((block) => (
+                          <Card key={block.id}>
+                            <CardContent className="pt-5 pb-5">
+                              <div
+                                className="prose prose-sm max-w-none text-left text-muted-foreground [&_strong]:text-foreground [&_p]:my-1"
+                                dangerouslySetInnerHTML={{ __html: sanitizeHtml(block.content) }}
+                              />
+                            </CardContent>
+                          </Card>
+                        ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Submit Page Preview */}
+              {previewView === "submit" && (
+                <div className="space-y-6 py-4">
+                  <h1 className="text-2xl font-bold">제보 접수</h1>
+
+                  <div className="space-y-6">
+                    {/* Report Type */}
+                    <div className="space-y-2">
+                      <Label>제보 유형 *</Label>
+                      <Select disabled>
+                        <SelectTrigger>
+                          <SelectValue placeholder="제보 유형을 선택하세요" />
+                        </SelectTrigger>
+                      </Select>
+                      {watchedReportTypes?.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5">
+                          <span className="text-xs text-muted-foreground mr-1">선택 가능:</span>
+                          {watchedReportTypes.map((type) => (
+                            <Badge key={type} variant="secondary" className="text-xs">{type}</Badge>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Title */}
+                    <div className="space-y-2">
+                      <Label>제보 제목 *</Label>
+                      <Input placeholder="제보 제목을 입력하세요" maxLength={40} disabled />
+                    </div>
+
+                    {/* Content */}
+                    <div className="space-y-2">
+                      <Label>제보 내용 *</Label>
+                      <Textarea
+                        placeholder={watch("reportGuideMessage") || "제보 내용을 상세히 작성해주세요. 누가, 무엇을, 언제, 어디서, 왜, 어떻게 했는지 포함해주세요."}
+                        rows={10}
+                        className="min-h-[240px]"
+                        disabled
+                      />
+                      <div className="flex flex-wrap gap-2">
+                        {watch("useAiValidation") && (
+                          <Button type="button" variant="outline" size="sm" disabled>
+                            <Brain className="h-4 w-4 mr-2" />
+                            AI 제보내용 검증
+                          </Button>
+                        )}
+                        {watch("useAiValidation") && (
+                          <Button type="button" variant="outline" size="sm" disabled>
+                            <Sparkles className="h-4 w-4 mr-2" />
+                            AI 제보내용 업데이트
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* File Upload */}
+                    <div className="space-y-2">
+                      <Label>첨부파일</Label>
+                      <div className="border-2 border-dashed rounded-lg p-6 text-center cursor-default">
+                        <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+                        <p className="text-sm font-medium mb-1">클릭하여 파일을 선택하세요</p>
+                        <p className="text-xs text-muted-foreground">PDF, JPG, PNG, TXT, DOC, DOCX, XLS, XLSX (최대 50MB)</p>
+                      </div>
+                    </div>
+
+                    {/* Password */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>비밀번호 *</Label>
+                        <Input type="password" disabled placeholder="••••••••" />
+                        <p className="text-xs text-muted-foreground">
+                          처리확인 시 필요합니다 (최소 8자)
+                        </p>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>비밀번호 확인 *</Label>
+                        <Input type="password" disabled placeholder="••••••••" />
+                      </div>
+                    </div>
+
+                    <Button className="w-full" size="lg" disabled>
+                      제보 접수하기
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
+import { sanitizeHtml } from "@/lib/utils/sanitize";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
   Dialog,
@@ -407,7 +408,7 @@ export default function AdminCodesPage() {
                       {rt.description ? (
                         <div
                           className="prose prose-sm max-w-none line-clamp-2 [&>p]:m-0"
-                          dangerouslySetInnerHTML={{ __html: rt.description }}
+                          dangerouslySetInnerHTML={{ __html: sanitizeHtml(rt.description) }}
                         />
                       ) : (
                         "-"

@@ -1,5 +1,5 @@
 import { type DefaultSession } from "next-auth";
-import { type UserRole } from "./database";
+import { type UserRole, type CompanyRole } from "./database";
 
 declare module "next-auth" {
   interface Session {
@@ -7,12 +7,16 @@ declare module "next-auth" {
       id: string;
       role: UserRole;
       companyId: string | null;
+      companyName: string | null;
+      companyRole: CompanyRole | null;
     } & DefaultSession["user"];
   }
 
   interface User {
     role: UserRole;
     companyId: string | null;
+    companyName: string | null;
+    companyRole: CompanyRole | null;
   }
 }
 
@@ -21,5 +25,7 @@ declare module "next-auth/jwt" {
     id: string;
     role: UserRole;
     companyId: string | null;
+    companyName: string | null;
+    companyRole: CompanyRole | null;
   }
 }

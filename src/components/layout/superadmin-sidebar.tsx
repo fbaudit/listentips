@@ -29,9 +29,10 @@ const navItems = [
 
 interface SuperAdminSidebarProps {
   allowedMenus?: string[];
+  mobile?: boolean;
 }
 
-export function SuperAdminSidebar({ allowedMenus }: SuperAdminSidebarProps) {
+export function SuperAdminSidebar({ allowedMenus, mobile }: SuperAdminSidebarProps) {
   const pathname = usePathname();
   const t = useTranslations("admin");
 
@@ -40,7 +41,7 @@ export function SuperAdminSidebar({ allowedMenus }: SuperAdminSidebarProps) {
     : navItems;
 
   return (
-    <aside className="hidden lg:flex w-64 flex-col border-r bg-card min-h-screen">
+    <aside className={cn("w-64 flex-col border-r bg-card min-h-screen", mobile ? "flex" : "hidden lg:flex")}>
       <div className="flex items-center gap-2 px-6 py-4 border-b">
         <Shield className="h-6 w-6 text-primary" />
         <span className="font-bold">Super Admin</span>

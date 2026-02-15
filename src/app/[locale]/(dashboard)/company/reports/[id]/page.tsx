@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -20,11 +20,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { ArrowLeft, Send, Loader2, Download, FileText, Lock, Key, Clock, Trash2, History, Pencil, X, Check } from "lucide-react";
+import { ArrowLeft, Send, Loader2, Download, FileText, Lock, Key, Clock, Trash2, History, Pencil, X, Check, Paperclip } from "lucide-react";
+import { ALLOWED_FILE_TYPES, MAX_FILE_SIZE } from "@/lib/validators/report";
 import { Link } from "@/i18n/routing";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { EncryptionKeyDialog } from "@/components/shared/encryption-key-dialog";
+import { AIAnalysisCard } from "./_components/ai-analysis-card";
 
 interface ReportDetail {
   id: string;
@@ -50,6 +52,7 @@ interface Comment {
   author_type: string;
   is_internal: boolean;
   created_at: string;
+  attachments?: { id: string; file_name: string; file_size: number }[];
 }
 
 interface ReportStatus {
@@ -114,6 +117,11 @@ export default function CompanyReportDetailPage() {
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
   const [editCommentContent, setEditCommentContent] = useState("");
   const [savingComment, setSavingComment] = useState(false);
+
+  // Comment attachment state
+  const [commentFiles, setCommentFiles] = useState<File[]>([]);
+  const commentFileRef = useRef<HTMLInputElement>(null);
+  const [downloadingCommentAttId, setDownloadingCommentAttId] = useState<string | null>(null);
 
   const fetchReportData = async () => {
     try {
@@ -210,29 +218,117 @@ export default function CompanyReportDetailPage() {
     }
   };
 
+  const handleCommentFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const added = Array.from(e.target.files || []);
+    const valid = added.filter((f) => ALLOWED_FILE_TYPES.includes(f.type) && f.size <= MAX_FILE_SIZE);
+    const totalSize = [...commentFiles, ...valid].reduce((s, f) => s + f.size, 0);
+    if (totalSize > 10 * 1024 * 1024) {
+      toast.error("첨부파일 크기는 10MB를 초과할 수 없습니다");
+      return;
+    }
+    setCommentFiles((prev) => [...prev, ...valid]);
+    e.target.value = "";
+  };
+
+  const removeCommentFile = (index: number) => {
+    setCommentFiles((prev) => prev.filter((_, i) => i !== index));
+  };
+
   const handleComment = async () => {
-    if (!newComment.trim()) return;
+    if (!newComment.trim() && commentFiles.length === 0) return;
     setSending(true);
     try {
       const res = await fetch(`/api/reports/${reportId}/comments`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          content: newComment,
+          content: newComment || " ",
           authorType: "company_admin",
           isInternal,
         }),
       });
       if (res.ok) {
         const data = await res.json();
-        setComments((prev) => [...prev, data.comment]);
+        let attachments: { id: string; file_name: string; file_size: number }[] = [];
+
+        if (commentFiles.length > 0) {
+          const formData = new FormData();
+          formData.append("commentId", data.comment.id);
+          commentFiles.forEach((file) => formData.append("files", file));
+
+          try {
+            const uploadRes = await fetch(`/api/reports/${reportId}/comments/attachments`, {
+              method: "POST",
+              body: formData,
+            });
+
+            if (uploadRes.ok) {
+              const uploadData = await uploadRes.json();
+              attachments = uploadData.attachments || [];
+              if (uploadData.errors?.length > 0) {
+                toast.error(uploadData.errors.join(", "));
+              }
+            } else {
+              const errData = await uploadRes.json().catch(() => ({}));
+              toast.error(errData.error || "첨부파일 업로드에 실패했습니다");
+            }
+          } catch {
+            toast.error("첨부파일 업로드 중 오류가 발생했습니다");
+          }
+        }
+
+        setComments((prev) => [...prev, { ...data.comment, attachments }]);
         setNewComment("");
+        setCommentFiles([]);
         setIsInternal(false);
       }
     } catch {
       // ignore
     } finally {
       setSending(false);
+    }
+  };
+
+  const handleCommentAttachmentDownload = async (attachmentId: string) => {
+    setDownloadingCommentAttId(attachmentId);
+    try {
+      const res = await fetch(`/api/reports/${reportId}/comments/attachments/${attachmentId}`);
+      if (res.ok) {
+        const data = await res.json();
+        const fileRes = await fetch(data.url);
+        const blob = await fileRes.blob();
+        const blobUrl = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = blobUrl;
+        link.download = data.fileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(blobUrl);
+      }
+    } catch {
+      toast.error("파일 다운로드에 실패했습니다");
+    } finally {
+      setDownloadingCommentAttId(null);
+    }
+  };
+
+  const handleDeleteCommentAttachment = async (commentId: string, attachmentId: string) => {
+    try {
+      const res = await fetch(`/api/reports/${reportId}/comments/attachments/${attachmentId}`, {
+        method: "DELETE",
+      });
+      if (res.ok) {
+        setComments((prev) =>
+          prev.map((c) =>
+            c.id === commentId
+              ? { ...c, attachments: (c.attachments || []).filter((a) => a.id !== attachmentId) }
+              : c
+          )
+        );
+      }
+    } catch {
+      toast.error("파일 삭제에 실패했습니다");
     }
   };
 
@@ -434,6 +530,9 @@ export default function CompanyReportDetailPage() {
             </CardContent>
           </Card>
 
+          {/* AI Analysis */}
+          <AIAnalysisCard reportId={reportId} />
+
           {/* Comments */}
           <Card>
             <CardHeader>
@@ -500,25 +599,61 @@ export default function CompanyReportDetailPage() {
                                 </button>
                               </div>
                             )}
-                            <div
-                              className={`max-w-[75%] p-3 rounded-2xl text-sm ${
-                                isMe
-                                  ? c.is_internal
-                                    ? "bg-yellow-100 border border-yellow-300 rounded-br-sm"
-                                    : "bg-primary text-primary-foreground rounded-br-sm"
-                                  : "bg-muted border rounded-bl-sm"
-                              }`}
-                            >
-                              <div className={`flex items-center gap-2 mb-1 ${isMe ? "justify-end" : ""}`}>
-                                <span className="font-medium text-xs">
-                                  {c.author_type === "reporter" ? "제보자" : "관리자"}
-                                </span>
-                                {c.is_internal && <Badge variant="outline" className="text-xs">내부 메모</Badge>}
+                            <div className="max-w-[75%] space-y-1">
+                              <div
+                                className={`p-3 rounded-2xl text-sm ${
+                                  isMe
+                                    ? c.is_internal
+                                      ? "bg-yellow-100 border border-yellow-300 rounded-br-sm"
+                                      : "bg-primary text-primary-foreground rounded-br-sm"
+                                    : "bg-muted border rounded-bl-sm"
+                                }`}
+                              >
+                                <div className={`flex items-center gap-2 mb-1 ${isMe ? "justify-end" : ""}`}>
+                                  <span className="font-medium text-xs">
+                                    {c.author_type === "reporter" ? "제보자" : "관리자"}
+                                  </span>
+                                  {c.is_internal && <Badge variant="outline" className="text-xs">내부 메모</Badge>}
+                                </div>
+                                <p className="whitespace-pre-wrap break-words">{c.content}</p>
+                                <p className={`text-xs mt-1 ${isMe ? (c.is_internal ? "text-yellow-600" : "text-primary-foreground/70") : "text-muted-foreground"} ${isMe ? "text-right" : ""}`}>
+                                  {new Date(c.created_at).toLocaleString("ko")}
+                                </p>
                               </div>
-                              <p className="whitespace-pre-wrap break-words">{c.content}</p>
-                              <p className={`text-xs mt-1 ${isMe ? (c.is_internal ? "text-yellow-600" : "text-primary-foreground/70") : "text-muted-foreground"} ${isMe ? "text-right" : ""}`}>
-                                {new Date(c.created_at).toLocaleString("ko")}
-                              </p>
+                              {/* Comment attachments */}
+                              {c.attachments && c.attachments.length > 0 && (
+                                <div className="space-y-1">
+                                  {c.attachments.map((att) => (
+                                    <div
+                                      key={att.id}
+                                      className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs ${
+                                        isMe ? "bg-primary/10" : "bg-muted"
+                                      }`}
+                                    >
+                                      <FileText className="h-3 w-3 shrink-0 text-muted-foreground" />
+                                      <button
+                                        className="truncate hover:underline text-left"
+                                        onClick={() => handleCommentAttachmentDownload(att.id)}
+                                        disabled={downloadingCommentAttId === att.id}
+                                      >
+                                        {downloadingCommentAttId === att.id ? (
+                                          <Loader2 className="h-3 w-3 animate-spin inline" />
+                                        ) : (
+                                          att.file_name
+                                        )}
+                                      </button>
+                                      {isMe && (
+                                        <button
+                                          className="shrink-0 text-muted-foreground hover:text-destructive"
+                                          onClick={() => handleDeleteCommentAttachment(c.id, att.id)}
+                                        >
+                                          <X className="h-3 w-3" />
+                                        </button>
+                                      )}
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
                             </div>
                           </div>
                         )}
@@ -531,12 +666,49 @@ export default function CompanyReportDetailPage() {
               <Separator />
 
               <div className="space-y-3">
-                <Textarea
-                  placeholder="댓글을 입력하세요..."
-                  value={newComment}
-                  onChange={(e) => setNewComment(e.target.value)}
-                  rows={3}
-                />
+                {/* Selected files preview */}
+                {commentFiles.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {commentFiles.map((file, i) => (
+                      <div key={i} className="flex items-center gap-1 bg-muted rounded-full px-2.5 py-1 text-xs">
+                        <FileText className="h-3 w-3 shrink-0" />
+                        <span className="truncate max-w-[120px]">{file.name}</span>
+                        <button onClick={() => removeCommentFile(i)} className="text-muted-foreground hover:text-destructive">
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <p className="text-[11px] text-muted-foreground">
+                  첨부 가능: PDF, JPG, PNG, GIF, TXT, DOC, DOCX, XLS, XLSX (최대 10MB)
+                </p>
+                <div className="flex gap-2 items-end">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="shrink-0"
+                    onClick={() => commentFileRef.current?.click()}
+                  >
+                    <Paperclip className="h-4 w-4" />
+                  </Button>
+                  <input
+                    ref={commentFileRef}
+                    type="file"
+                    multiple
+                    accept=".pdf,.jpg,.jpeg,.png,.gif,.doc,.docx,.xls,.xlsx,.txt"
+                    onChange={handleCommentFileChange}
+                    className="hidden"
+                  />
+                  <Textarea
+                    placeholder="댓글을 입력하세요..."
+                    value={newComment}
+                    onChange={(e) => setNewComment(e.target.value)}
+                    rows={2}
+                    className="flex-1"
+                  />
+                </div>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Checkbox
@@ -548,7 +720,7 @@ export default function CompanyReportDetailPage() {
                       내부 메모 (제보자에게 비공개)
                     </Label>
                   </div>
-                  <Button onClick={handleComment} disabled={sending || !newComment.trim()} size="sm">
+                  <Button onClick={handleComment} disabled={sending || (!newComment.trim() && commentFiles.length === 0)} size="sm">
                     {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4 mr-2" />}
                     전송
                   </Button>

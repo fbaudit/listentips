@@ -3,7 +3,7 @@ import Credentials from "next-auth/providers/credentials";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { verifyPassword } from "@/lib/utils/password";
 import { verifyCode } from "@/lib/utils/verification-code";
-import type { UserRole } from "@/types/database";
+import type { UserRole, CompanyRole } from "@/types/database";
 
 export const authOptions: NextAuthConfig = {
   providers: [
@@ -57,15 +57,17 @@ export const authOptions: NextAuthConfig = {
 
         let twoFactorEnabled = securityRow?.value?.two_factor_enabled ?? true;
 
-        // Also check company-level 2FA setting
-        if (twoFactorEnabled && user.company_id) {
+        // Also check company-level 2FA setting and fetch company name
+        let companyName: string | null = null;
+        if (user.company_id) {
           const { data: company } = await supabase
             .from("companies")
-            .select("two_factor_enabled")
+            .select("name, two_factor_enabled")
             .eq("id", user.company_id)
             .single();
 
-          if (company && !company.two_factor_enabled) {
+          companyName = company?.name ?? null;
+          if (twoFactorEnabled && company && !company.two_factor_enabled) {
             twoFactorEnabled = false;
           }
         }
@@ -103,6 +105,8 @@ export const authOptions: NextAuthConfig = {
           name: user.name,
           role: user.role,
           companyId: user.company_id,
+          companyName,
+          companyRole: user.company_role || null,
         };
       },
     }),
@@ -113,6 +117,8 @@ export const authOptions: NextAuthConfig = {
         token.id = user.id as string;
         token.role = user.role;
         token.companyId = user.companyId;
+        token.companyName = user.companyName;
+        token.companyRole = user.companyRole;
       }
       return token;
     },
@@ -121,6 +127,8 @@ export const authOptions: NextAuthConfig = {
         session.user.id = token.id as string;
         session.user.role = token.role as UserRole;
         session.user.companyId = (token.companyId as string) || null;
+        session.user.companyName = (token.companyName as string) || null;
+        session.user.companyRole = (token.companyRole as CompanyRole) || null;
       }
       return session;
     },
