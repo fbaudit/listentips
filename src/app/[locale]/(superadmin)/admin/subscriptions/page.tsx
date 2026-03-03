@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslations, useLocale } from "next-intl";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -20,6 +21,8 @@ interface Subscription {
 }
 
 export default function AdminSubscriptionsPage() {
+  const t = useTranslations("admin.subscriptions");
+  const locale = useLocale();
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -47,11 +50,11 @@ export default function AdminSubscriptionsPage() {
   const totalPages = Math.ceil(total / 20);
   const planLabel = (plan: string) => {
     switch (plan) {
-      case "free_trial": return "무료 체험";
-      case "monthly": return "월간 구독";
-      case "yearly": return "연간 구독";
-      case "premium_monthly": return "프리미엄 월간";
-      case "premium_yearly": return "프리미엄 연간";
+      case "free_trial": return t("freeTrial");
+      case "monthly": return t("monthly");
+      case "yearly": return t("yearly");
+      case "premium_monthly": return t("premiumMonthly");
+      case "premium_yearly": return t("premiumYearly");
       default: return plan;
     }
   };
@@ -59,8 +62,8 @@ export default function AdminSubscriptionsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">구독 관리</h1>
-        <p className="text-muted-foreground">전체 기업의 구독 현황을 관리합니다</p>
+        <h1 className="text-2xl font-bold">{t("title")}</h1>
+        <p className="text-muted-foreground">{t("description")}</p>
       </div>
 
       <Card>
@@ -68,20 +71,20 @@ export default function AdminSubscriptionsPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>기업</TableHead>
-                <TableHead>요금제</TableHead>
-                <TableHead>상태</TableHead>
-                <TableHead>결제</TableHead>
-                <TableHead>시작일</TableHead>
-                <TableHead>만료일</TableHead>
-                <TableHead>금액</TableHead>
+                <TableHead>{t("company")}</TableHead>
+                <TableHead>{t("plan")}</TableHead>
+                <TableHead>{t("status")}</TableHead>
+                <TableHead>{t("payment")}</TableHead>
+                <TableHead>{t("startDate")}</TableHead>
+                <TableHead>{t("endDate")}</TableHead>
+                <TableHead>{t("amount")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading ? (
-                <TableRow><TableCell colSpan={7} className="text-center py-8">로딩 중...</TableCell></TableRow>
+                <TableRow><TableCell colSpan={7} className="text-center py-8">{t("loading")}</TableCell></TableRow>
               ) : subscriptions.length === 0 ? (
-                <TableRow><TableCell colSpan={7} className="text-center py-8">구독이 없습니다</TableCell></TableRow>
+                <TableRow><TableCell colSpan={7} className="text-center py-8">{t("noSubscriptions")}</TableCell></TableRow>
               ) : (
                 subscriptions.map((sub) => (
                   <TableRow key={sub.id}>
@@ -89,18 +92,18 @@ export default function AdminSubscriptionsPage() {
                     <TableCell><Badge variant="outline">{planLabel(sub.plan_type)}</Badge></TableCell>
                     <TableCell>
                       <Badge variant={sub.status === "active" ? "default" : "secondary"}>
-                        {sub.status === "active" ? "활성" : sub.status === "cancelled" ? "취소" : sub.status}
+                        {sub.status === "active" ? t("active") : sub.status === "cancelled" ? t("cancelled") : sub.status}
                       </Badge>
                     </TableCell>
                     <TableCell>{sub.payment_provider || "-"}</TableCell>
                     <TableCell className="text-muted-foreground">
-                      {new Date(sub.start_date).toLocaleDateString("ko")}
+                      {new Date(sub.start_date).toLocaleDateString(locale)}
                     </TableCell>
                     <TableCell className="text-muted-foreground">
-                      {new Date(sub.end_date).toLocaleDateString("ko")}
+                      {new Date(sub.end_date).toLocaleDateString(locale)}
                     </TableCell>
                     <TableCell className="font-mono">
-                      {sub.amount > 0 ? `${sub.currency} ${sub.amount.toLocaleString()}` : "무료"}
+                      {sub.amount > 0 ? `${sub.currency} ${sub.amount.toLocaleString()}` : t("free")}
                     </TableCell>
                   </TableRow>
                 ))

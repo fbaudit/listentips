@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,24 +31,23 @@ interface Company {
 
 function getStatusInfo(company: Company): { label: string; variant: "default" | "secondary" | "destructive" | "outline" } {
   const serviceExpired = company.service_end ? new Date(company.service_end) < new Date() : false;
-
-  // service_end가 지났으면 is_active 여부와 관계없이 만료 처리
   if (serviceExpired && company.is_active) {
-    return { label: "만료", variant: "destructive" };
+    return { label: "expired", variant: "destructive" };
   }
   if (company.is_active && company.subscription_status === "cancelled") {
-    return { label: "취소대기", variant: "outline" };
+    return { label: "pendingCancel", variant: "outline" };
   }
   if (company.is_active) {
-    return { label: "활성", variant: "default" };
+    return { label: "active", variant: "default" };
   }
   if (!company.is_active && (company.subscription_status === "cancelled" || company.subscription_status === "expired")) {
-    return { label: "취소", variant: "destructive" };
+    return { label: "cancelled", variant: "destructive" };
   }
-  return { label: "비활성", variant: "secondary" };
+  return { label: "inactive", variant: "secondary" };
 }
 
 export default function AdminCompaniesPage() {
+  const t = useTranslations("admin.companies");
   const [companies, setCompanies] = useState<Company[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -91,37 +91,32 @@ export default function AdminCompaniesPage() {
     ? companies
     : companies.filter((c) => {
         const status = getStatusInfo(c);
-        if (statusFilter === "active") return status.label === "활성";
-        if (statusFilter === "pending_cancel") return status.label === "취소대기";
-        if (statusFilter === "expired") return status.label === "만료";
-        if (statusFilter === "cancelled") return status.label === "취소";
-        if (statusFilter === "inactive") return status.label === "비활성";
-        return true;
+        return status.label === statusFilter;
       });
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">기업 관리</h1>
-        <p className="text-muted-foreground">등록된 기업을 관리합니다</p>
+        <h1 className="text-2xl font-bold">{t("title")}</h1>
+        <p className="text-muted-foreground">{t("description")}</p>
       </div>
 
       <div className="flex gap-4">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input placeholder="기업 검색..." className="pl-9" value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} />
+          <Input placeholder={t("searchPlaceholder")} className="pl-9" value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} />
         </div>
         <Select value={statusFilter} onValueChange={setStatusFilter}>
           <SelectTrigger className="w-[140px]">
-            <SelectValue placeholder="상태 필터" />
+            <SelectValue placeholder={t("statusFilter")} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">전체</SelectItem>
-            <SelectItem value="active">활성</SelectItem>
-            <SelectItem value="pending_cancel">취소대기</SelectItem>
-            <SelectItem value="expired">만료</SelectItem>
-            <SelectItem value="cancelled">취소</SelectItem>
-            <SelectItem value="inactive">비활성</SelectItem>
+            <SelectItem value="all">{t("all")}</SelectItem>
+            <SelectItem value="active">{t("active")}</SelectItem>
+            <SelectItem value="pendingCancel">{t("pendingCancel")}</SelectItem>
+            <SelectItem value="expired">{t("expired")}</SelectItem>
+            <SelectItem value="cancelled">{t("cancelled")}</SelectItem>
+            <SelectItem value="inactive">{t("inactive")}</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -131,20 +126,20 @@ export default function AdminCompaniesPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>기업명</TableHead>
-                <TableHead>코드</TableHead>
-                <TableHead>업종</TableHead>
-                <TableHead>상태</TableHead>
-                <TableHead>서비스 만료</TableHead>
-                <TableHead>제보 URL</TableHead>
-                <TableHead>관리자 URL</TableHead>
+                <TableHead>{t("companyName")}</TableHead>
+                <TableHead>{t("code")}</TableHead>
+                <TableHead>{t("industry")}</TableHead>
+                <TableHead>{t("status")}</TableHead>
+                <TableHead>{t("serviceExpiry")}</TableHead>
+                <TableHead>{t("reportUrlLabel")}</TableHead>
+                <TableHead>{t("adminUrl")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading ? (
-                <TableRow><TableCell colSpan={7} className="text-center py-8">로딩 중...</TableCell></TableRow>
+                <TableRow><TableCell colSpan={7} className="text-center py-8">{t("loading")}</TableCell></TableRow>
               ) : filteredCompanies.length === 0 ? (
-                <TableRow><TableCell colSpan={7} className="text-center py-8">기업이 없습니다</TableCell></TableRow>
+                <TableRow><TableCell colSpan={7} className="text-center py-8">{t("noCompanies")}</TableCell></TableRow>
               ) : (
                 filteredCompanies.map((c) => {
                   const statusInfo = getStatusInfo(c);
@@ -162,7 +157,7 @@ export default function AdminCompaniesPage() {
                       <TableCell>{c.industry || "-"}</TableCell>
                       <TableCell>
                         <Badge variant={statusInfo.variant}>
-                          {statusInfo.label}
+                          {t(statusInfo.label)}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-muted-foreground">

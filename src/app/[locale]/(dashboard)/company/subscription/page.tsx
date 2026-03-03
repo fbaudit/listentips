@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -19,7 +19,8 @@ interface Subscription {
 }
 
 export default function CompanySubscriptionPage() {
-  const t = useTranslations("company");
+  const t = useTranslations("company.subscription");
+  const locale = useLocale() as "ko" | "en" | "ja" | "zh";
   const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -47,7 +48,7 @@ export default function CompanySubscriptionPage() {
 
     if (isKorean) {
       // TODO: Initialize Toss Payments widget
-      alert("Toss Payments 결제 위젯이 여기에 표시됩니다");
+      alert(t("tossPaymentAlert"));
     } else {
       try {
         const res = await fetch("/api/payments/stripe/checkout", {
@@ -68,8 +69,8 @@ export default function CompanySubscriptionPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">{t("subscription.title")}</h1>
-        <p className="text-muted-foreground">{t("subscription.description")}</p>
+        <h1 className="text-2xl font-bold">{t("title")}</h1>
+        <p className="text-muted-foreground">{t("description")}</p>
       </div>
 
       {/* Current Plan */}
@@ -78,26 +79,26 @@ export default function CompanySubscriptionPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <CreditCard className="w-5 h-5" />
-              현재 요금제
+              {t("currentPlan")}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-center gap-3">
               <Badge variant="default" className="text-base px-3 py-1">
-                {PLANS[subscription.plan_type as keyof typeof PLANS]?.name.ko || subscription.plan_type}
+                {PLANS[subscription.plan_type as keyof typeof PLANS]?.name[locale] || subscription.plan_type}
               </Badge>
               <Badge variant={subscription.status === "active" ? "default" : "secondary"}>
-                {subscription.status === "active" ? "활성" : subscription.status}
+                {subscription.status === "active" ? t("active") : subscription.status}
               </Badge>
             </div>
             <div className="grid gap-2 text-sm">
               <div className="flex justify-between">
-                <span className="text-muted-foreground">시작일</span>
-                <span>{new Date(subscription.start_date).toLocaleDateString("ko")}</span>
+                <span className="text-muted-foreground">{t("startDate")}</span>
+                <span>{new Date(subscription.start_date).toLocaleDateString(locale)}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-muted-foreground">만료일</span>
-                <span>{new Date(subscription.end_date).toLocaleDateString("ko")}</span>
+                <span className="text-muted-foreground">{t("expiryDate")}</span>
+                <span>{new Date(subscription.end_date).toLocaleDateString(locale)}</span>
               </div>
             </div>
           </CardContent>
@@ -113,21 +114,21 @@ export default function CompanySubscriptionPage() {
           return (
             <Card key={key} className={isCurrent ? "border-primary" : ""}>
               <CardHeader className="text-center">
-                <CardTitle className="text-lg">{plan.name.ko}</CardTitle>
+                <CardTitle className="text-lg">{plan.name[locale]}</CardTitle>
                 <div className="text-2xl font-bold mt-2">
                   {plan.price.KRW === 0
-                    ? "무료"
+                    ? t("free")
                     : `₩${plan.price.KRW.toLocaleString()}`}
                 </div>
                 {key !== "free_trial" && (
                   <p className="text-xs text-muted-foreground">
-                    {isMonthly ? "/ 월" : isYearly ? "/ 년" : ""}
+                    {isMonthly ? t("perMonth") : isYearly ? t("perYear") : ""}
                   </p>
                 )}
               </CardHeader>
               <CardContent className="space-y-4">
                 <ul className="space-y-2">
-                  {plan.features.ko.map((feature, i) => (
+                  {plan.features[locale].map((feature, i) => (
                     <li key={i} className="flex items-start gap-2 text-sm">
                       <CheckCircle2 className="w-4 h-4 text-green-500 mt-0.5 shrink-0" />
                       {feature}
@@ -140,7 +141,7 @@ export default function CompanySubscriptionPage() {
                   disabled={isCurrent || key === "free_trial"}
                   onClick={() => handleUpgrade(key)}
                 >
-                  {isCurrent ? "현재 플랜" : "업그레이드"}
+                  {isCurrent ? t("currentPlan") : t("upgrade")}
                 </Button>
               </CardContent>
             </Card>

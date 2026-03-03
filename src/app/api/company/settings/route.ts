@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { auth } from "@/lib/auth/auth";
 import { encrypt } from "@/lib/utils/encryption";
+import { createAuditLog } from "@/lib/utils/audit-log";
 
 export async function GET() {
   const session = await auth();
@@ -124,6 +125,25 @@ export async function PATCH(request: NextRequest) {
   if (error) {
     console.error("Settings update error:", error);
     return NextResponse.json({ error: "설정 업데이트에 실패했습니다" }, { status: 500 });
+  }
+
+  // Audit log
+  const changedFields = Object.keys(updateData).filter((k) => k !== "updated_at");
+  if (changedFields.length > 0) {
+    createAuditLog({
+      request,
+      companyId: session.user.companyId,
+      actorId: session.user.id,
+      actorName: session.user.name || session.user.email,
+      action: "settings.update",
+      entityType: "settings",
+      entityId: session.user.companyId,
+      changes: {
+        new: Object.fromEntries(
+          changedFields.filter((k) => !k.includes("encrypted") && !k.includes("encryption")).map((k) => [k, updateData[k]])
+        ),
+      },
+    }).catch((err) => console.error("Audit log error:", err));
   }
 
   return NextResponse.json({ message: "Updated" });

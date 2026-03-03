@@ -8,14 +8,18 @@ import {
   INVESTIGATION_PLAN_PROMPT,
   INVESTIGATION_REPORT_PROMPT,
   QUESTIONNAIRE_PROMPT,
+  DEIDENTIFICATION_PROMPT,
 } from "@/lib/ai/prompts";
 import { getCompanyDataKey, decryptWithKey, isEncrypted } from "@/lib/utils/data-encryption";
+import { regexDeidentify } from "@/lib/utils/deidentify-regex";
+import type { DeidentifiedData } from "@/types/database";
 
-type AnalysisType = "summary" | "violation" | "investigation_plan" | "questionnaire" | "investigation_report";
+type AnalysisType = "deidentification" | "summary" | "violation" | "investigation_plan" | "questionnaire" | "investigation_report";
 
-const VALID_TYPES: AnalysisType[] = ["summary", "violation", "investigation_plan", "questionnaire", "investigation_report"];
+const VALID_TYPES: AnalysisType[] = ["deidentification", "summary", "violation", "investigation_plan", "questionnaire", "investigation_report"];
 
 const PROMPT_MAP: Record<AnalysisType, string> = {
+  deidentification: DEIDENTIFICATION_PROMPT,
   summary: REPORT_SUMMARY_PROMPT,
   violation: VIOLATION_ANALYSIS_PROMPT,
   investigation_plan: INVESTIGATION_PLAN_PROMPT,
@@ -31,6 +35,7 @@ export async function POST(
     const { id } = await params;
     const body = await request.json();
     const analysisType = body.analysisType as AnalysisType;
+    const method = (body.method as string) || "ai"; // "ai" | "regex"
 
     if (!analysisType || !VALID_TYPES.includes(analysisType)) {
       return NextResponse.json({ error: "Invalid analysis type" }, { status: 400 });
@@ -44,7 +49,7 @@ export async function POST(
 
     const supabase = createAdminClient();
 
-    // Fetch report data
+    // Fetch report data (without deidentified_data to avoid failure if column doesn't exist yet)
     const { data: report, error } = await supabase
       .from("reports")
       .select(`
@@ -56,6 +61,17 @@ export async function POST(
 
     if (error || !report) {
       return NextResponse.json({ error: "Report not found" }, { status: 404 });
+    }
+
+    // Separately fetch deidentified_data (may not exist if migration not applied)
+    let deidentifiedData: DeidentifiedData | null = null;
+    if (analysisType !== "deidentification") {
+      const { data: deidRow } = await supabase
+        .from("reports")
+        .select("deidentified_data")
+        .eq("id", access.reportId)
+        .single();
+      deidentifiedData = (deidRow?.deidentified_data as DeidentifiedData) || null;
     }
 
     // Decrypt if encrypted
@@ -81,20 +97,65 @@ export async function POST(
       );
     }
 
+    // Regex-based deidentification (no AI needed)
+    if (analysisType === "deidentification" && method === "regex") {
+      const result = regexDeidentify({
+        title: title || "",
+        content: content || "",
+        fields: {
+          who_field: report.who_field || "정보 없음",
+          what_field: report.what_field || "정보 없음",
+          when_field: report.when_field || "정보 없음",
+          where_field: report.where_field || "정보 없음",
+          why_field: report.why_field || "정보 없음",
+          how_field: report.how_field || "정보 없음",
+        },
+      });
+      return NextResponse.json({ result });
+    }
+
+    // Determine prompt input: use de-identified content for non-deidentification types if available
+    let promptTitle = title || "";
+    let promptContent = content || "";
+    let promptFields = {
+      who_field: report.who_field || "정보 없음",
+      what_field: report.what_field || "정보 없음",
+      when_field: report.when_field || "정보 없음",
+      where_field: report.where_field || "정보 없음",
+      why_field: report.why_field || "정보 없음",
+      how_field: report.how_field || "정보 없음",
+    };
+
+    if (analysisType !== "deidentification" && deidentifiedData) {
+      const deid = deidentifiedData;
+      promptTitle = deid.deidentifiedTitle || promptTitle;
+      promptContent = deid.deidentifiedContent || promptContent;
+      if (deid.deidentifiedFields) {
+        promptFields = {
+          who_field: deid.deidentifiedFields.who_field || "정보 없음",
+          what_field: deid.deidentifiedFields.what_field || "정보 없음",
+          when_field: deid.deidentifiedFields.when_field || "정보 없음",
+          where_field: deid.deidentifiedFields.where_field || "정보 없음",
+          why_field: deid.deidentifiedFields.why_field || "정보 없음",
+          how_field: deid.deidentifiedFields.how_field || "정보 없음",
+        };
+      }
+    }
+
     // Get AI client for this company
     const ai = await getCompanyAIClient(report.company_id);
 
     // Build prompt with placeholders replaced
     const prompt = PROMPT_MAP[analysisType]
       .replace("{report_number}", report.report_number || "")
-      .replace("{title}", title || "")
-      .replace("{content}", content || "")
-      .replace("{who_field}", report.who_field || "정보 없음")
-      .replace("{what_field}", report.what_field || "정보 없음")
-      .replace("{when_field}", report.when_field || "정보 없음")
-      .replace("{where_field}", report.where_field || "정보 없음")
-      .replace("{why_field}", report.why_field || "정보 없음")
-      .replace("{how_field}", report.how_field || "정보 없음");
+      .replace("{title}", promptTitle)
+      .replace("{content}", promptContent)
+      .replace("{who_field}", promptFields.who_field)
+      .replace("{what_field}", promptFields.what_field)
+      .replace("{when_field}", promptFields.when_field)
+      .replace("{where_field}", promptFields.where_field)
+      .replace("{why_field}", promptFields.why_field)
+      .replace("{how_field}", promptFields.how_field);
 
     const response = await ai.generateContent(prompt);
 

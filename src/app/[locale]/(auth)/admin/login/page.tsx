@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
+import { useTranslations } from "next-intl";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { loginSchema, type LoginInput } from "@/lib/validators/auth";
 import { Button } from "@/components/ui/button";
@@ -19,21 +20,22 @@ export default function AdminLoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { data: session, status } = useSession();
+  const t = useTranslations("admin.login");
+  const ta = useTranslations("auth");
+  const tc = useTranslations("common");
   const debugReason = searchParams.get("debug");
   const [error, setError] = useState<string | null>(
     debugReason
-      ? `[DEBUG] 대시보드 접근 실패: ${debugReason}`
+      ? t("debugFail", { reason: debugReason })
       : searchParams.get("error")
-        ? "로그인에 실패했습니다. 다시 시도해주세요."
+        ? ta("loginFailed")
         : null
   );
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const captchaRef = useRef<CaptchaWidgetRef>(null);
 
-  // Platform login settings
   const [captchaEnabled, setCaptchaEnabled] = useState(true);
 
-  // 2FA state
   const [loginStep, setLoginStep] = useState<LoginStep>("credentials");
   const [verificationCode, setVerificationCode] = useState("");
   const [verifyingCode, setVerifyingCode] = useState(false);
@@ -44,7 +46,6 @@ export default function AdminLoginPage() {
   const [resendCooldown, setResendCooldown] = useState(0);
   const [savedCredentials, setSavedCredentials] = useState<LoginInput | null>(null);
 
-  // Fetch login settings
   useEffect(() => {
     fetch("/api/auth/login-settings")
       .then((r) => r.json())
@@ -54,14 +55,12 @@ export default function AdminLoginPage() {
       .catch(() => {});
   }, []);
 
-  // If already logged in as super_admin, redirect to dashboard
   useEffect(() => {
     if (status === "authenticated" && session?.user?.role === "super_admin") {
       router.replace("/admin/dashboard");
     }
   }, [session, status, router]);
 
-  // Resend cooldown timer
   useEffect(() => {
     if (resendCooldown <= 0) return;
     const timer = setTimeout(() => setResendCooldown((c) => c - 1), 1000);
@@ -115,18 +114,18 @@ export default function AdminLoginPage() {
     if (signInData.url) {
       try {
         const urlError = new URL(signInData.url).searchParams.get("error");
-        if (urlError) return { error: "로그인에 실패했습니다. 다시 시도해주세요." };
+        if (urlError) return { error: ta("loginFailed") };
       } catch { /* ignore */ }
     }
 
     if (!signInRes.ok) {
-      return { error: "로그인에 실패했습니다." };
+      return { error: ta("loginError") };
     }
 
     const sessionCheck = await fetch("/api/auth/admin/session");
     const sessionData = await sessionCheck.json();
     if (!sessionData?.user) {
-      return { error: "세션 생성에 실패했습니다. 다시 시도해주세요." };
+      return { error: t("sessionFailed") };
     }
 
     return { success: true };
@@ -149,12 +148,11 @@ export default function AdminLoginPage() {
       const verifyData = await verifyRes.json();
 
       if (!verifyRes.ok) {
-        setError(verifyData.error || "로그인에 실패했습니다");
+        setError(verifyData.error || ta("loginError"));
         resetCaptcha();
         return;
       }
 
-      // 2FA disabled — sign in directly
       if (verifyData.directLogin) {
         const result = await signInAdmin(data);
         if (result.error) {
@@ -177,7 +175,7 @@ export default function AdminLoginPage() {
         return;
       }
     } catch {
-      setError("서버에 연결할 수 없습니다");
+      setError(ta("serverError"));
       resetCaptcha();
       return;
     }
@@ -189,7 +187,6 @@ export default function AdminLoginPage() {
     setVerifyingCode(true);
 
     try {
-      // Verify the code
       const codeRes = await fetch("/api/auth/verify-code", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -198,12 +195,11 @@ export default function AdminLoginPage() {
 
       const codeData = await codeRes.json();
       if (!codeRes.ok) {
-        setError(codeData.error || "인증에 실패했습니다");
+        setError(codeData.error || ta("verificationFailed"));
         setVerifyingCode(false);
         return;
       }
 
-      // Sign in via admin auth endpoint
       const result = await signInAdmin(savedCredentials, verificationCode);
       if (result.error) {
         setError(result.error);
@@ -213,7 +209,7 @@ export default function AdminLoginPage() {
 
       window.location.href = "/admin/dashboard";
     } catch {
-      setError("서버에 연결할 수 없습니다");
+      setError(ta("serverError"));
       setVerifyingCode(false);
     }
   };
@@ -238,10 +234,10 @@ export default function AdminLoginPage() {
         setSentVia(data.sentVia || "");
         setResendCooldown(120);
       } else if (!res.ok) {
-        setError(data.error || "재발송에 실패했습니다");
+        setError(data.error || ta("resendFailed"));
       }
     } catch {
-      setError("서버에 연결할 수 없습니다");
+      setError(ta("serverError"));
     }
   };
 
@@ -252,16 +248,16 @@ export default function AdminLoginPage() {
           <div className="mx-auto w-12 h-12 rounded-lg bg-destructive/10 flex items-center justify-center mb-2">
             <ShieldAlert className="w-6 h-6 text-destructive" />
           </div>
-          <CardTitle className="text-2xl">슈퍼 관리자 로그인</CardTitle>
+          <CardTitle className="text-2xl">{t("superAdminTitle")}</CardTitle>
           <CardDescription>
-            {loginStep === "credentials" ? "플랫폼 관리 시스템에 접속합니다" : "인증번호를 입력해주세요"}
+            {loginStep === "credentials" ? t("description") : ta("enterVerification")}
           </CardDescription>
         </CardHeader>
         <CardContent>
           {loginStep === "credentials" ? (
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="username">아이디 (이메일)</Label>
+                <Label htmlFor="username">{ta("usernameLabel")}</Label>
                 <Input
                   id="username"
                   type="email"
@@ -274,12 +270,12 @@ export default function AdminLoginPage() {
                 )}
               </div>
               <div className="space-y-2">
-                <Label htmlFor="password">비밀번호</Label>
+                <Label htmlFor="password">{ta("passwordLabel")}</Label>
                 <Input
                   id="password"
                   type="password"
                   {...register("password")}
-                  placeholder="비밀번호"
+                  placeholder={ta("passwordPlaceholder")}
                   autoComplete="current-password"
                 />
                 {errors.password && (
@@ -300,14 +296,13 @@ export default function AdminLoginPage() {
               )}
               <Button type="submit" className="w-full" disabled={isSubmitting}>
                 {isSubmitting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                로그인
+                {tc("login")}
               </Button>
             </form>
           ) : (
             <div className="space-y-4">
-              {/* Sent info */}
               <div className="rounded-md bg-muted p-3 text-sm space-y-1">
-                <p className="font-medium">인증번호가 발송되었습니다</p>
+                <p className="font-medium">{ta("verificationSent")}</p>
                 {sentVia.includes("email") && maskedEmail && (
                   <div className="flex items-center gap-2 text-muted-foreground">
                     <Mail className="w-4 h-4" />
@@ -322,9 +317,8 @@ export default function AdminLoginPage() {
                 )}
               </div>
 
-              {/* Verification code input */}
               <div className="space-y-2">
-                <Label htmlFor="verificationCode">인증번호 (6자리)</Label>
+                <Label htmlFor="verificationCode">{ta("verificationLabel")}</Label>
                 <Input
                   id="verificationCode"
                   value={verificationCode}
@@ -349,7 +343,7 @@ export default function AdminLoginPage() {
                 disabled={verifyingCode || verificationCode.length !== 6}
               >
                 {verifyingCode && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                인증 확인
+                {ta("verifyButton")}
               </Button>
 
               <div className="flex items-center justify-between">
@@ -363,7 +357,7 @@ export default function AdminLoginPage() {
                   }}
                 >
                   <ArrowLeft className="w-4 h-4 mr-1" />
-                  돌아가기
+                  {ta("goBack")}
                 </Button>
                 <Button
                   variant="ghost"
@@ -371,11 +365,10 @@ export default function AdminLoginPage() {
                   onClick={() => handleResend("email")}
                   disabled={resendCooldown > 0}
                 >
-                  {resendCooldown > 0 ? `재발송 (${resendCooldown}초)` : "인증번호 재발송"}
+                  {resendCooldown > 0 ? ta("resendCountdown", { seconds: resendCooldown }) : ta("resend")}
                 </Button>
               </div>
 
-              {/* SMS 대체 인증 */}
               {maskedMobile && !sentVia.includes("sms") && (
                 <div className="border-t pt-3">
                   <Button
@@ -386,7 +379,7 @@ export default function AdminLoginPage() {
                     disabled={resendCooldown > 0}
                   >
                     <Smartphone className="w-4 h-4 mr-2" />
-                    SMS로 인증번호 받기 ({maskedMobile})
+                    {ta("smsVerification", { phone: maskedMobile })}
                   </Button>
                 </div>
               )}

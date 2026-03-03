@@ -2,6 +2,7 @@
 
 import { signOut, useSession } from "next-auth/react";
 import { useRouter, usePathname } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -23,6 +24,8 @@ export function DashboardTopbar() {
   const router = useRouter();
   const pathname = usePathname();
   const isSuperAdmin = pathname.includes("/admin/");
+  const t = useTranslations("company.dashboard");
+  const tc = useTranslations("common");
 
   const handleLogout = async () => {
     const loginUrl =
@@ -70,12 +73,12 @@ export function DashboardTopbar() {
           <DropdownMenuContent align="end">
             <DropdownMenuItem>
               <User className="h-4 w-4 mr-2" />
-              프로필
+              {t("profile")}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleLogout}>
               <LogOut className="h-4 w-4 mr-2" />
-              로그아웃
+              {tc("logout")}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

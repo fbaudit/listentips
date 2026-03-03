@@ -3,6 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { verifyReportAccess } from "@/lib/auth/report-access";
 import { getCompanyDataKey, encryptWithKey, decryptWithKey, isEncrypted } from "@/lib/utils/data-encryption";
 import { notifyCompanyAdmins } from "@/lib/utils/notify-company-admins";
+import { createAuditLog } from "@/lib/utils/audit-log";
 
 export async function GET(
   request: NextRequest,
@@ -98,6 +99,16 @@ export async function POST(
     return NextResponse.json({ error: "Failed to create comment" }, { status: 500 });
   }
 
+  // Audit log
+  createAuditLog({
+    request,
+    companyId: access.companyId,
+    actorName: body.authorType || "reporter",
+    action: "comment.create",
+    entityType: "comment",
+    entityId: comment.id,
+  }).catch((err) => console.error("Audit log error:", err));
+
   // Notify company admins when reporter adds a comment
   if ((body.authorType || "reporter") === "reporter") {
     const { data: reportInfo } = await supabase
@@ -181,6 +192,16 @@ export async function PATCH(
     return NextResponse.json({ error: "Failed to update comment" }, { status: 500 });
   }
 
+  // Audit log
+  createAuditLog({
+    request,
+    companyId: access.companyId,
+    actorName: access.role,
+    action: "comment.update",
+    entityType: "comment",
+    entityId: commentId,
+  }).catch((err) => console.error("Audit log error:", err));
+
   return NextResponse.json({ success: true, content: content.trim() });
 }
 
@@ -223,6 +244,16 @@ export async function DELETE(
   if (access.role === "company_admin" && existing.author_type === "reporter") {
     return NextResponse.json({ error: "Cannot delete others' comments" }, { status: 403 });
   }
+
+  // Audit log before deletion
+  createAuditLog({
+    request,
+    companyId: access.companyId,
+    actorName: access.role,
+    action: "comment.delete",
+    entityType: "comment",
+    entityId: commentId,
+  }).catch((err) => console.error("Audit log error:", err));
 
   const { error } = await supabase
     .from("comments")

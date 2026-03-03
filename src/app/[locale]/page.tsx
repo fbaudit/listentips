@@ -1,6 +1,6 @@
 "use client";
 
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 import { Link } from "@/i18n/routing";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -22,6 +22,7 @@ const FEATURES = [
 
 export default function LandingPage() {
   const t = useTranslations("landing");
+  const locale = useLocale() as "ko" | "en" | "ja" | "zh";
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -98,7 +99,7 @@ export default function LandingPage() {
                     </Badge>
                   )}
                   <CardHeader className="text-center">
-                    <CardTitle className="text-lg">{plan.name.ko}</CardTitle>
+                    <CardTitle className="text-lg">{plan.name[locale]}</CardTitle>
                     <div className="text-2xl font-bold mt-2">
                       {plan.price.KRW === 0
                         ? t("pricing.freeTrial")
@@ -112,7 +113,7 @@ export default function LandingPage() {
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <ul className="space-y-2">
-                      {plan.features.ko.map((feature, i) => (
+                      {plan.features[locale].map((feature, i) => (
                         <li key={i} className="flex items-start gap-2 text-sm">
                           <CheckCircle2 className="w-4 h-4 text-green-500 mt-0.5 shrink-0" />
                           {feature}

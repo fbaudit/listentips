@@ -1,10 +1,10 @@
 import type { CompanyRole } from "@/types/database";
 
-export const COMPANY_MENU_KEYS = ["dashboard", "reports", "settings", "subscription"] as const;
+export const COMPANY_MENU_KEYS = ["dashboard", "reports", "audit-logs", "settings", "subscription"] as const;
 export type CompanyMenuKey = (typeof COMPANY_MENU_KEYS)[number];
 
 export const COMPANY_ROLE_PERMISSIONS: Record<CompanyRole, CompanyMenuKey[]> = {
-  manager: ["dashboard", "reports", "settings", "subscription"],
+  manager: ["dashboard", "reports", "audit-logs", "settings", "subscription"],
   user: ["dashboard", "reports"],
   other: ["dashboard"],
 };

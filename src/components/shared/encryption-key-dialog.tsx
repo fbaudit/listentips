@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useTranslations } from "next-intl";
 import {
   Dialog,
   DialogContent,
@@ -25,6 +26,8 @@ export function EncryptionKeyDialog({ open, onOpenChange, onKeyVerified }: Encry
   const [key, setKey] = useState("");
   const [verifying, setVerifying] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const t = useTranslations("encryption");
+  const tc = useTranslations("common");
 
   useEffect(() => {
     if (open) {
@@ -35,7 +38,7 @@ export function EncryptionKeyDialog({ open, onOpenChange, onKeyVerified }: Encry
 
   const handleVerify = async () => {
     if (!key.trim()) {
-      setError("암호화 키를 입력해주세요");
+      setError(t("pleaseEnterKey"));
       return;
     }
     setError(null);
@@ -53,12 +56,12 @@ export function EncryptionKeyDialog({ open, onOpenChange, onKeyVerified }: Encry
         sessionStorage.setItem("encryptionKey", key.trim());
         onKeyVerified(key.trim());
         onOpenChange(false);
-        toast.success("암호화 키가 확인되었습니다");
+        toast.success(t("keyVerified"));
       } else {
-        setError("암호화 키가 올바르지 않습니다");
+        setError(t("invalidKey"));
       }
     } catch {
-      setError("서버에 연결할 수 없습니다");
+      setError(t("serverError"));
     } finally {
       setVerifying(false);
     }
@@ -70,22 +73,21 @@ export function EncryptionKeyDialog({ open, onOpenChange, onKeyVerified }: Encry
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Lock className="w-5 h-5" />
-            암호화 키 입력
+            {t("enterKey")}
           </DialogTitle>
           <DialogDescription>
-            제보 데이터를 열람하려면 암호화 키를 입력해야 합니다.
-            키가 없으면 제보 제목과 내용이 &quot;[암호화됨]&quot;으로 표시됩니다.
+            {t("enterKeyDescription")}
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="enc_key">암호화 키</Label>
+            <Label htmlFor="enc_key">{t("encryptionKey")}</Label>
             <Input
               id="enc_key"
               type="password"
               value={key}
               onChange={(e) => setKey(e.target.value)}
-              placeholder="암호화 키를 입력하세요"
+              placeholder={t("keyPlaceholder")}
               className="font-mono"
               onKeyDown={(e) => {
                 if (e.key === "Enter") handleVerify();
@@ -102,11 +104,11 @@ export function EncryptionKeyDialog({ open, onOpenChange, onKeyVerified }: Encry
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            나중에
+            {t("later")}
           </Button>
           <Button onClick={handleVerify} disabled={verifying || !key.trim()}>
             {verifying && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-            확인
+            {tc("confirm")}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -124,6 +126,8 @@ export function EncryptionKeyGenerateDialog({ open, onOpenChange, onGenerated }:
   const [generating, setGenerating] = useState(false);
   const [generatedKey, setGeneratedKey] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const t = useTranslations("encryption");
+  const tc = useTranslations("common");
 
   useEffect(() => {
     if (open) {
@@ -148,10 +152,10 @@ export function EncryptionKeyGenerateDialog({ open, onOpenChange, onGenerated }:
         setGeneratedKey(data.dataKey);
         onGenerated();
       } else {
-        setError(data.error || "키 생성에 실패했습니다");
+        setError(data.error || t("generationFailed"));
       }
     } catch {
-      setError("서버에 연결할 수 없습니다");
+      setError(t("serverError"));
     } finally {
       setGenerating(false);
     }
@@ -160,7 +164,7 @@ export function EncryptionKeyGenerateDialog({ open, onOpenChange, onGenerated }:
   const handleCopy = () => {
     if (generatedKey) {
       navigator.clipboard.writeText(generatedKey);
-      toast.success("키가 클립보드에 복사되었습니다");
+      toast.success(t("keyCopied"));
     }
   };
 
@@ -170,12 +174,12 @@ export function EncryptionKeyGenerateDialog({ open, onOpenChange, onGenerated }:
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Key className="w-5 h-5" />
-            {generatedKey ? "암호화 키 생성 완료" : "데이터 암호화 키 생성"}
+            {generatedKey ? t("generateComplete") : t("generateTitle")}
           </DialogTitle>
           <DialogDescription>
             {generatedKey
-              ? "아래 키를 안전한 곳에 보관하세요. 이 키는 다시 표시되지 않습니다."
-              : "제보 데이터를 암호화하기 위한 고유 키를 생성합니다. 이 키는 한 번만 표시되며, 분실 시 복구가 불가능합니다."}
+              ? t("keepKeySafe")
+              : t("generateDescription")}
           </DialogDescription>
         </DialogHeader>
 
@@ -184,10 +188,10 @@ export function EncryptionKeyGenerateDialog({ open, onOpenChange, onGenerated }:
             <div className="rounded-md bg-amber-50 border border-amber-200 p-4 space-y-2">
               <div className="flex items-center gap-2 text-amber-800 font-medium text-sm">
                 <AlertTriangle className="w-4 h-4" />
-                이 키를 안전하게 보관하세요
+                {t("saveKey")}
               </div>
               <p className="text-xs text-amber-700">
-                이 키는 이 화면을 닫으면 다시 확인할 수 없습니다. 분실 시 암호화된 데이터를 복구할 수 없습니다.
+                {t("keyWarning")}
               </p>
             </div>
             <div className="flex items-center gap-2">
@@ -210,12 +214,12 @@ export function EncryptionKeyGenerateDialog({ open, onOpenChange, onGenerated }:
               </div>
             )}
             <div className="rounded-md bg-muted p-4 text-sm space-y-2">
-              <p className="font-medium">키 생성 시 유의사항:</p>
+              <p className="font-medium">{t("notes")}</p>
               <ul className="list-disc list-inside text-muted-foreground space-y-1">
-                <li>키는 생성 후 한 번만 표시됩니다</li>
-                <li>키를 분실하면 암호화된 데이터 복구가 불가능합니다</li>
-                <li>키를 안전한 곳에 별도로 보관해야 합니다</li>
-                <li>이후 제보 조회 시 키를 입력해야 내용을 확인할 수 있습니다</li>
+                <li>{t("note1")}</li>
+                <li>{t("note2")}</li>
+                <li>{t("note3")}</li>
+                <li>{t("note4")}</li>
               </ul>
             </div>
           </div>
@@ -224,16 +228,16 @@ export function EncryptionKeyGenerateDialog({ open, onOpenChange, onGenerated }:
         <DialogFooter>
           {generatedKey ? (
             <Button onClick={() => onOpenChange(false)}>
-              확인 (키를 보관했습니다)
+              {t("confirmSaved")}
             </Button>
           ) : (
             <>
               <Button variant="outline" onClick={() => onOpenChange(false)}>
-                취소
+                {tc("cancel")}
               </Button>
               <Button onClick={handleGenerate} disabled={generating}>
                 {generating && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                키 생성
+                {t("generateButton")}
               </Button>
             </>
           )}

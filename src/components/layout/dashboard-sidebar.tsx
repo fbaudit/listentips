@@ -13,11 +13,13 @@ import {
   Settings,
   CreditCard,
   Building2,
+  ScrollText,
 } from "lucide-react";
 
 const navItems = [
   { key: "dashboard" as CompanyMenuKey, href: "/company/dashboard", icon: LayoutDashboard, labelKey: "dashboard.title" },
   { key: "reports" as CompanyMenuKey, href: "/company/reports", icon: FileText, labelKey: "reports.title" },
+  { key: "audit-logs" as CompanyMenuKey, href: "/company/audit-logs", icon: ScrollText, labelKey: "auditLogs.title" },
   { key: "settings" as CompanyMenuKey, href: "/company/settings", icon: Settings, labelKey: "settings.title" },
   { key: "subscription" as CompanyMenuKey, href: "/company/subscription", icon: CreditCard, labelKey: "subscription.title" },
 ];

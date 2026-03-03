@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { signIn, useSession } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
+import { useTranslations } from "next-intl";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { loginSchema, type LoginInput } from "@/lib/validators/auth";
 import { Button } from "@/components/ui/button";
@@ -19,8 +20,11 @@ export default function CompanyLoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { data: session, status } = useSession();
+  const t = useTranslations("company.login");
+  const ta = useTranslations("auth");
+  const tc = useTranslations("common");
   const [error, setError] = useState<string | null>(
-    searchParams.get("error") ? "로그인에 실패했습니다. 다시 시도해주세요." : null
+    searchParams.get("error") ? ta("loginFailed") : null
   );
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const captchaRef = useRef<CaptchaWidgetRef>(null);
@@ -87,7 +91,6 @@ export default function CompanyLoginPage() {
   const onSubmit = async (data: LoginInput) => {
     setError(null);
 
-    // Step 1: Verify via login API (CAPTCHA + rate limiting) → sends 2FA code
     try {
       const verifyRes = await fetch("/api/auth/login", {
         method: "POST",
@@ -102,12 +105,11 @@ export default function CompanyLoginPage() {
       const verifyData = await verifyRes.json();
 
       if (!verifyRes.ok) {
-        setError(verifyData.error || "로그인에 실패했습니다");
+        setError(verifyData.error || ta("loginError"));
         resetCaptcha();
         return;
       }
 
-      // 2FA disabled — sign in directly
       if (verifyData.directLogin) {
         const result = await signIn("credentials", {
           username: data.username,
@@ -115,7 +117,7 @@ export default function CompanyLoginPage() {
           redirect: false,
         });
         if (result?.error) {
-          setError("로그인에 실패했습니다. 다시 시도해주세요.");
+          setError(ta("loginFailed"));
           resetCaptcha();
           return;
         }
@@ -134,7 +136,7 @@ export default function CompanyLoginPage() {
         return;
       }
     } catch {
-      setError("서버에 연결할 수 없습니다");
+      setError(ta("serverError"));
       resetCaptcha();
       return;
     }
@@ -146,7 +148,6 @@ export default function CompanyLoginPage() {
     setVerifyingCode(true);
 
     try {
-      // Verify the code
       const codeRes = await fetch("/api/auth/verify-code", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -155,12 +156,11 @@ export default function CompanyLoginPage() {
 
       const codeData = await codeRes.json();
       if (!codeRes.ok) {
-        setError(codeData.error || "인증에 실패했습니다");
+        setError(codeData.error || ta("verificationFailed"));
         setVerifyingCode(false);
         return;
       }
 
-      // Step 3: Sign in via NextAuth
       const result = await signIn("credentials", {
         username: savedCredentials.username,
         password: savedCredentials.password,
@@ -169,15 +169,14 @@ export default function CompanyLoginPage() {
       });
 
       if (result?.error) {
-        setError("로그인에 실패했습니다. 다시 시도해주세요.");
+        setError(ta("loginFailed"));
         setVerifyingCode(false);
         return;
       }
 
-      // Full page reload to pick up new session
       window.location.href = "/company/dashboard";
     } catch {
-      setError("서버에 연결할 수 없습니다");
+      setError(ta("serverError"));
       setVerifyingCode(false);
     }
   };
@@ -202,10 +201,10 @@ export default function CompanyLoginPage() {
         setSentVia(data.sentVia || "");
         setResendCooldown(120);
       } else if (!res.ok) {
-        setError(data.error || "재발송에 실패했습니다");
+        setError(data.error || ta("resendFailed"));
       }
     } catch {
-      setError("서버에 연결할 수 없습니다");
+      setError(ta("serverError"));
     }
   };
 
@@ -216,16 +215,16 @@ export default function CompanyLoginPage() {
           <div className="mx-auto w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center mb-2">
             <Shield className="w-6 h-6 text-primary" />
           </div>
-          <CardTitle className="text-2xl">기업 관리자 로그인</CardTitle>
+          <CardTitle className="text-2xl">{t("title")}</CardTitle>
           <CardDescription>
-            {loginStep === "credentials" ? "제보 관리 시스템에 접속합니다" : "인증번호를 입력해주세요"}
+            {loginStep === "credentials" ? t("description") : ta("enterVerification")}
           </CardDescription>
         </CardHeader>
         <CardContent>
           {loginStep === "credentials" ? (
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="username">아이디 (이메일)</Label>
+                <Label htmlFor="username">{ta("usernameLabel")}</Label>
                 <Input
                   id="username"
                   type="email"
@@ -238,12 +237,12 @@ export default function CompanyLoginPage() {
                 )}
               </div>
               <div className="space-y-2">
-                <Label htmlFor="password">비밀번호</Label>
+                <Label htmlFor="password">{t("password")}</Label>
                 <Input
                   id="password"
                   type="password"
                   {...register("password")}
-                  placeholder="비밀번호를 입력하세요"
+                  placeholder={ta("passwordPlaceholder")}
                   autoComplete="current-password"
                 />
                 {errors.password && (
@@ -264,14 +263,13 @@ export default function CompanyLoginPage() {
               )}
               <Button type="submit" className="w-full" disabled={isSubmitting}>
                 {isSubmitting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                로그인
+                {tc("login")}
               </Button>
             </form>
           ) : (
             <div className="space-y-4">
-              {/* Sent info */}
               <div className="rounded-md bg-muted p-3 text-sm space-y-1">
-                <p className="font-medium">인증번호가 발송되었습니다</p>
+                <p className="font-medium">{ta("verificationSent")}</p>
                 {sentVia.includes("email") && maskedEmail && (
                   <div className="flex items-center gap-2 text-muted-foreground">
                     <Mail className="w-4 h-4" />
@@ -286,9 +284,8 @@ export default function CompanyLoginPage() {
                 )}
               </div>
 
-              {/* Verification code input */}
               <div className="space-y-2">
-                <Label htmlFor="verificationCode">인증번호 (6자리)</Label>
+                <Label htmlFor="verificationCode">{ta("verificationLabel")}</Label>
                 <Input
                   id="verificationCode"
                   value={verificationCode}
@@ -313,7 +310,7 @@ export default function CompanyLoginPage() {
                 disabled={verifyingCode || verificationCode.length !== 6}
               >
                 {verifyingCode && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                인증 확인
+                {ta("verifyButton")}
               </Button>
 
               <div className="flex items-center justify-between">
@@ -327,7 +324,7 @@ export default function CompanyLoginPage() {
                   }}
                 >
                   <ArrowLeft className="w-4 h-4 mr-1" />
-                  돌아가기
+                  {ta("goBack")}
                 </Button>
                 <Button
                   variant="ghost"
@@ -335,11 +332,10 @@ export default function CompanyLoginPage() {
                   onClick={() => handleResend("email")}
                   disabled={resendCooldown > 0}
                 >
-                  {resendCooldown > 0 ? `재발송 (${resendCooldown}초)` : "인증번호 재발송"}
+                  {resendCooldown > 0 ? ta("resendCountdown", { seconds: resendCooldown }) : ta("resend")}
                 </Button>
               </div>
 
-              {/* SMS 대체 인증 */}
               {maskedMobile && !sentVia.includes("sms") && (
                 <div className="border-t pt-3">
                   <Button
@@ -350,7 +346,7 @@ export default function CompanyLoginPage() {
                     disabled={resendCooldown > 0}
                   >
                     <Smartphone className="w-4 h-4 mr-2" />
-                    SMS로 인증번호 받기 ({maskedMobile})
+                    {ta("smsVerification", { phone: maskedMobile })}
                   </Button>
                 </div>
               )}

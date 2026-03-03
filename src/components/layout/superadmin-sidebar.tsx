@@ -12,6 +12,7 @@ import {
   Code,
   CreditCard,
   FileCheck,
+  ScrollText,
   Shield,
   Settings,
 } from "lucide-react";
@@ -24,6 +25,7 @@ const navItems = [
   { key: "codes", href: "/admin/codes", icon: Code, labelKey: "codes.title" },
   { key: "subscriptions", href: "/admin/subscriptions", icon: CreditCard, labelKey: "subscriptions.title" },
   { key: "applications", href: "/admin/applications", icon: FileCheck, labelKey: "applications.title" },
+  { key: "audit-logs", href: "/admin/audit-logs", icon: ScrollText, labelKey: "auditLogs.title" },
   { key: "settings", href: "/admin/settings", icon: Settings, labelKey: "settings.title" },
 ];
 

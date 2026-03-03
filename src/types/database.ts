@@ -10,6 +10,17 @@ export type PaymentProvider = "toss" | "stripe";
 export type NotificationType = "new_report" | "status_change" | "new_comment" | "subscription_expiry" | "system";
 export type AuthorType = "reporter" | "company_admin" | "super_admin";
 
+export type AuditAction =
+  | "report.create" | "report.view" | "report.update" | "report.delete"
+  | "report.status_change" | "report.export"
+  | "comment.create" | "comment.update" | "comment.delete"
+  | "settings.update"
+  | "user.login" | "user.logout"
+  | "staff.create" | "staff.update" | "staff.delete";
+
+export type AuditEntityType =
+  | "report" | "comment" | "settings" | "user" | "staff";
+
 export interface CompanyGroup {
   id: string;
   name: string;
@@ -139,6 +150,25 @@ export interface ReportStatus {
   created_at: string;
 }
 
+export interface DeidentifiedData {
+  deidentifiedTitle: string;
+  deidentifiedContent: string;
+  deidentifiedFields: {
+    who_field: string;
+    what_field: string;
+    when_field: string;
+    where_field: string;
+    why_field: string;
+    how_field: string;
+  };
+  mappingTable: Array<{
+    original: string;
+    placeholder: string;
+    category: string;
+  }>;
+  generatedAt: string;
+}
+
 export interface Report {
   id: string;
   company_id: string;
@@ -156,6 +186,8 @@ export interface Report {
   how_field: string | null;
   ai_validation_score: number | null;
   ai_validation_feedback: Record<string, unknown> | null;
+  deidentified_data: DeidentifiedData | null;
+  ai_analysis_results: Record<string, Record<string, unknown>> | null;
   reporter_ip_hash: string | null;
   reporter_locale: string | null;
   view_count: number;
@@ -282,5 +314,18 @@ export interface CompanyDocument {
   gemini_file_uri: string | null;
   gemini_file_name: string | null;
   gemini_uploaded_at: string | null;
+  created_at: string;
+}
+
+export interface AuditLog {
+  id: string;
+  company_id: string | null;
+  actor_id: string | null;
+  actor_name: string | null;
+  action: AuditAction;
+  entity_type: AuditEntityType;
+  entity_id: string | null;
+  changes: { old?: Record<string, unknown>; new?: Record<string, unknown> } | null;
+  ip_hash: string | null;
   created_at: string;
 }

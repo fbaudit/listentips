@@ -28,7 +28,7 @@ export function MarketingHeader() {
               <Button variant="outline" size="sm">{t("companyLogin")}</Button>
             </Link>
             <Link href="/apply">
-              <Button size="sm">무료체험</Button>
+              <Button size="sm">TRY IT</Button>
             </Link>
           </div>
 
@@ -45,7 +45,7 @@ export function MarketingHeader() {
                   <Button variant="outline" className="w-full">{t("companyLogin")}</Button>
                 </Link>
                 <Link href="/apply" onClick={() => setOpen(false)}>
-                  <Button className="w-full">무료체험</Button>
+                  <Button className="w-full">TRY IT</Button>
                 </Link>
                 <div className="flex justify-center mt-2">
                   <LanguageSwitcher />

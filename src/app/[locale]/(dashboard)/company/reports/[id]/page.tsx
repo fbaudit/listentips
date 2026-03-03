@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import { useParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -76,17 +77,6 @@ interface EditHistoryEntry {
   edited_at: string;
 }
 
-function fieldNameLabel(fieldName: string): string {
-  const labels: Record<string, string> = {
-    title: "제목",
-    content: "내용",
-    status_id: "상태",
-    attachment_added: "첨부파일 추가",
-    attachment_removed: "첨부파일 삭제",
-  };
-  return labels[fieldName] || fieldName;
-}
-
 function getEncryptionHeaders(): Record<string, string> {
   const key = typeof window !== "undefined" ? sessionStorage.getItem("encryptionKey") : null;
   return key ? { "x-encryption-key": key } : {};
@@ -96,6 +86,8 @@ export default function CompanyReportDetailPage() {
   const params = useParams();
   const router = useRouter();
   const reportId = params.id as string;
+  const t = useTranslations("company.reportDetail");
+  const tc = useTranslations("common");
   const [report, setReport] = useState<ReportDetail | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState("");
@@ -122,6 +114,17 @@ export default function CompanyReportDetailPage() {
   const [commentFiles, setCommentFiles] = useState<File[]>([]);
   const commentFileRef = useRef<HTMLInputElement>(null);
   const [downloadingCommentAttId, setDownloadingCommentAttId] = useState<string | null>(null);
+
+  function fieldNameLabel(fieldName: string): string {
+    const labels: Record<string, string> = {
+      title: t("titleLabel"),
+      content: t("contentLabel"),
+      status_id: t("statusChanged"),
+      attachment_added: t("attachmentAdded"),
+      attachment_removed: t("attachmentRemoved"),
+    };
+    return labels[fieldName] || fieldName;
+  }
 
   const fetchReportData = async () => {
     try {
@@ -223,7 +226,7 @@ export default function CompanyReportDetailPage() {
     const valid = added.filter((f) => ALLOWED_FILE_TYPES.includes(f.type) && f.size <= MAX_FILE_SIZE);
     const totalSize = [...commentFiles, ...valid].reduce((s, f) => s + f.size, 0);
     if (totalSize > 10 * 1024 * 1024) {
-      toast.error("첨부파일 크기는 10MB를 초과할 수 없습니다");
+      toast.error(t("commentAttachmentSizeError"));
       return;
     }
     setCommentFiles((prev) => [...prev, ...valid]);
@@ -270,10 +273,10 @@ export default function CompanyReportDetailPage() {
               }
             } else {
               const errData = await uploadRes.json().catch(() => ({}));
-              toast.error(errData.error || "첨부파일 업로드에 실패했습니다");
+              toast.error(errData.error || t("attachmentUploadFailed"));
             }
           } catch {
-            toast.error("첨부파일 업로드 중 오류가 발생했습니다");
+            toast.error(t("attachmentUploadError"));
           }
         }
 
@@ -307,7 +310,7 @@ export default function CompanyReportDetailPage() {
         URL.revokeObjectURL(blobUrl);
       }
     } catch {
-      toast.error("파일 다운로드에 실패했습니다");
+      toast.error(t("fileDownloadFailed"));
     } finally {
       setDownloadingCommentAttId(null);
     }
@@ -328,7 +331,7 @@ export default function CompanyReportDetailPage() {
         );
       }
     } catch {
-      toast.error("파일 삭제에 실패했습니다");
+      toast.error(t("fileDeleteFailed"));
     }
   };
 
@@ -348,7 +351,7 @@ export default function CompanyReportDetailPage() {
         setEditingCommentId(null);
       }
     } catch {
-      toast.error("댓글 수정 중 오류가 발생했습니다");
+      toast.error(t("commentEditError"));
     } finally {
       setSavingComment(false);
     }
@@ -363,7 +366,7 @@ export default function CompanyReportDetailPage() {
         setComments((prev) => prev.filter((c) => c.id !== commentId));
       }
     } catch {
-      toast.error("댓글 삭제 중 오류가 발생했습니다");
+      toast.error(t("commentDeleteError"));
     }
   };
 
@@ -379,15 +382,15 @@ export default function CompanyReportDetailPage() {
       const res = await fetch(`/api/reports/${reportId}`, { method: "DELETE" });
       const data = await res.json();
       if (res.ok) {
-        toast.success("제보가 삭제되었습니다");
+        toast.success(t("deleted"));
         setDeleteDialogOpen(false);
         router.push("/company/reports");
       } else {
-        toast.error(data.error || "삭제에 실패했습니다");
+        toast.error(data.error || t("deleteFailed"));
         setDeleteDialogOpen(false);
       }
     } catch {
-      toast.error("삭제 중 오류가 발생했습니다");
+      toast.error(t("deleteError"));
       setDeleteDialogOpen(false);
     } finally {
       setDeleting(false);
@@ -403,7 +406,7 @@ export default function CompanyReportDetailPage() {
   }
 
   if (!report) {
-    return <div className="text-center py-20 text-muted-foreground">제보를 찾을 수 없습니다</div>;
+    return <div className="text-center py-20 text-muted-foreground">{t("notFound")}</div>;
   }
 
   return (
@@ -412,7 +415,7 @@ export default function CompanyReportDetailPage() {
         <Button asChild variant="ghost" size="sm">
           <Link href="/company/reports">
             <ArrowLeft className="w-4 h-4 mr-2" />
-            목록으로
+            {t("backToList")}
           </Link>
         </Button>
       </div>
@@ -423,13 +426,13 @@ export default function CompanyReportDetailPage() {
           <div className="flex items-center gap-3">
             <Lock className="w-5 h-5 text-amber-600" />
             <div>
-              <p className="font-medium text-amber-800">제보 내용이 암호화되어 있습니다</p>
-              <p className="text-sm text-amber-600">암호화 키를 입력하면 내용을 확인할 수 있습니다</p>
+              <p className="font-medium text-amber-800">{t("encryptedNotice")}</p>
+              <p className="text-sm text-amber-600">{t("encryptedHelp")}</p>
             </div>
           </div>
           <Button size="sm" onClick={() => setEncKeyDialogOpen(true)}>
             <Key className="w-4 h-4 mr-2" />
-            키 입력
+            {t("enterKey")}
           </Button>
         </div>
       )}
@@ -458,7 +461,7 @@ export default function CompanyReportDetailPage() {
                       onClick={() => setDeleteDialogOpen(true)}
                     >
                       <Trash2 className="w-4 h-4 mr-1" />
-                      삭제
+                      {tc("delete")}
                     </Button>
                   )}
                 </div>
@@ -474,12 +477,12 @@ export default function CompanyReportDetailPage() {
                 <>
                   <Separator />
                   <div className="grid gap-3 sm:grid-cols-2 text-sm">
-                    {report.who_field && <div><span className="font-medium">누가:</span> {report.who_field}</div>}
-                    {report.what_field && <div><span className="font-medium">무엇을:</span> {report.what_field}</div>}
-                    {report.when_field && <div><span className="font-medium">언제:</span> {report.when_field}</div>}
-                    {report.where_field && <div><span className="font-medium">어디서:</span> {report.where_field}</div>}
-                    {report.why_field && <div><span className="font-medium">왜:</span> {report.why_field}</div>}
-                    {report.how_field && <div><span className="font-medium">어떻게:</span> {report.how_field}</div>}
+                    {report.who_field && <div><span className="font-medium">{t("who")}:</span> {report.who_field}</div>}
+                    {report.what_field && <div><span className="font-medium">{t("what")}:</span> {report.what_field}</div>}
+                    {report.when_field && <div><span className="font-medium">{t("when")}:</span> {report.when_field}</div>}
+                    {report.where_field && <div><span className="font-medium">{t("where")}:</span> {report.where_field}</div>}
+                    {report.why_field && <div><span className="font-medium">{t("why")}:</span> {report.why_field}</div>}
+                    {report.how_field && <div><span className="font-medium">{t("how")}:</span> {report.how_field}</div>}
                   </div>
                 </>
               )}
@@ -488,7 +491,7 @@ export default function CompanyReportDetailPage() {
                 <>
                   <Separator />
                   <div className="text-sm">
-                    <span className="font-medium">AI 검증 점수:</span>{" "}
+                    <span className="font-medium">{t("aiScore")}:</span>{" "}
                     <Badge variant={report.ai_validation_score >= 0.7 ? "default" : "secondary"}>
                       {Math.round(report.ai_validation_score * 100)}%
                     </Badge>
@@ -500,7 +503,7 @@ export default function CompanyReportDetailPage() {
                 <>
                   <Separator />
                   <div className="space-y-2">
-                    <h4 className="font-medium text-sm">첨부파일</h4>
+                    <h4 className="font-medium text-sm">{t("attachments")}</h4>
                     {report.attachments.map((att) => (
                       <div key={att.id} className="flex items-center justify-between bg-muted rounded px-3 py-2 text-sm">
                         <div className="flex items-center gap-2 min-w-0">
@@ -536,11 +539,11 @@ export default function CompanyReportDetailPage() {
           {/* Comments */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">커뮤니케이션</CardTitle>
+              <CardTitle className="text-lg">{t("communication")}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               {comments.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-4">아직 댓글이 없습니다</p>
+                <p className="text-sm text-muted-foreground text-center py-4">{t("noComments")}</p>
               ) : (
                 <div className="space-y-3">
                   {comments.map((c) => {
@@ -611,9 +614,9 @@ export default function CompanyReportDetailPage() {
                               >
                                 <div className={`flex items-center gap-2 mb-1 ${isMe ? "justify-end" : ""}`}>
                                   <span className="font-medium text-xs">
-                                    {c.author_type === "reporter" ? "제보자" : "관리자"}
+                                    {c.author_type === "reporter" ? t("reporter") : t("admin")}
                                   </span>
-                                  {c.is_internal && <Badge variant="outline" className="text-xs">내부 메모</Badge>}
+                                  {c.is_internal && <Badge variant="outline" className="text-xs">{t("internalMemo")}</Badge>}
                                 </div>
                                 <p className="whitespace-pre-wrap break-words">{c.content}</p>
                                 <p className={`text-xs mt-1 ${isMe ? (c.is_internal ? "text-yellow-600" : "text-primary-foreground/70") : "text-muted-foreground"} ${isMe ? "text-right" : ""}`}>
@@ -681,7 +684,7 @@ export default function CompanyReportDetailPage() {
                   </div>
                 )}
                 <p className="text-[11px] text-muted-foreground">
-                  첨부 가능: PDF, JPG, PNG, GIF, TXT, DOC, DOCX, XLS, XLSX (최대 10MB)
+                  {t("attachmentHelp")}
                 </p>
                 <div className="flex gap-2 items-end">
                   <Button
@@ -702,7 +705,7 @@ export default function CompanyReportDetailPage() {
                     className="hidden"
                   />
                   <Textarea
-                    placeholder="댓글을 입력하세요..."
+                    placeholder={t("commentPlaceholder")}
                     value={newComment}
                     onChange={(e) => setNewComment(e.target.value)}
                     rows={2}
@@ -717,12 +720,12 @@ export default function CompanyReportDetailPage() {
                       onCheckedChange={(v) => setIsInternal(!!v)}
                     />
                     <Label htmlFor="internal" className="text-sm cursor-pointer">
-                      내부 메모 (제보자에게 비공개)
+                      {t("internalNote")}
                     </Label>
                   </div>
                   <Button onClick={handleComment} disabled={sending || (!newComment.trim() && commentFiles.length === 0)} size="sm">
                     {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4 mr-2" />}
-                    전송
+                    {t("send")}
                   </Button>
                 </div>
               </div>
@@ -734,12 +737,12 @@ export default function CompanyReportDetailPage() {
         <div className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">상태 변경</CardTitle>
+              <CardTitle className="text-lg">{t("changeStatus")}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               <Select value={newStatus} onValueChange={setNewStatus}>
                 <SelectTrigger>
-                  <SelectValue placeholder="상태 선택" />
+                  <SelectValue placeholder={t("selectStatus")} />
                 </SelectTrigger>
                 <SelectContent>
                   {statuses.map((s) => (
@@ -761,22 +764,22 @@ export default function CompanyReportDetailPage() {
                 disabled={!newStatus || newStatus === report.status?.status_name || statusChanging}
               >
                 {statusChanging && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                상태 변경
+                {t("changeStatus")}
               </Button>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">정보</CardTitle>
+              <CardTitle className="text-lg">{t("info")}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2 text-sm">
               <div className="flex justify-between">
-                <span className="text-muted-foreground">유형</span>
+                <span className="text-muted-foreground">{t("type")}</span>
                 <span>{report.report_type?.type_name || "-"}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-muted-foreground">접수일</span>
+                <span className="text-muted-foreground">{t("receivedDate")}</span>
                 <span>{new Date(report.created_at).toLocaleDateString("ko")}</span>
               </div>
             </CardContent>
@@ -786,12 +789,12 @@ export default function CompanyReportDetailPage() {
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
                 <Clock className="w-4 h-4" />
-                제보자 접속 이력
+                {t("accessHistory")}
               </CardTitle>
             </CardHeader>
             <CardContent>
               {accessLogs.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-2">접속 이력이 없습니다</p>
+                <p className="text-sm text-muted-foreground text-center py-2">{t("noAccessLogs")}</p>
               ) : (
                 <div className="space-y-2 text-sm">
                   {accessLogs.map((log) => (
@@ -811,12 +814,12 @@ export default function CompanyReportDetailPage() {
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
                 <History className="w-4 h-4" />
-                수정 이력
+                {t("editHistory")}
               </CardTitle>
             </CardHeader>
             <CardContent>
               {editHistory.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-2">수정 이력이 없습니다</p>
+                <p className="text-sm text-muted-foreground text-center py-2">{t("noEditHistory")}</p>
               ) : (
                 <div className="space-y-3 max-h-96 overflow-y-auto">
                   {editHistory.map((entry) => (
@@ -850,10 +853,10 @@ export default function CompanyReportDetailPage() {
                         <p className="text-xs text-red-600">- {entry.old_value}</p>
                       )}
                       {entry.field_name === "status_id" && (
-                        <p className="text-xs text-muted-foreground">상태 변경</p>
+                        <p className="text-xs text-muted-foreground">{t("statusChanged")}</p>
                       )}
                       <p className="text-xs text-muted-foreground mt-0.5">
-                        {entry.edited_by === "reporter" ? "제보자" : "관리자"}
+                        {entry.edited_by === "reporter" ? t("reporter") : t("admin")}
                       </p>
                     </div>
                   ))}
@@ -875,21 +878,20 @@ export default function CompanyReportDetailPage() {
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>제보 삭제</AlertDialogTitle>
+            <AlertDialogTitle>{t("deleteReport")}</AlertDialogTitle>
             <AlertDialogDescription>
-              제보번호 <strong>{report.report_number}</strong>을(를) 삭제하시겠습니까?
-              삭제된 제보는 복구할 수 없으며, 첨부파일과 모든 대화 내역이 함께 삭제됩니다.
+              {t("deleteConfirm", { number: report.report_number })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={deleting}>취소</AlertDialogCancel>
+            <AlertDialogCancel disabled={deleting}>{tc("cancel")}</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDeleteReport}
               disabled={deleting}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               {deleting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              삭제
+              {tc("delete")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { MessageCircle, X, Send, Loader2, Bot } from "lucide-react";
@@ -22,6 +23,7 @@ export function ChatbotWidget({ companyCode, companyName }: ChatbotWidgetProps) 
   const [loading, setLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const t = useTranslations("chatbot");
 
   useEffect(() => {
     scrollRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -55,7 +57,7 @@ export function ChatbotWidget({ companyCode, companyName }: ChatbotWidgetProps) 
         ...prev,
         {
           role: "assistant",
-          content: data.reply || data.error || "응답을 받을 수 없습니다.",
+          content: data.reply || data.error || t("noResponse"),
         },
       ]);
     } catch {
@@ -63,7 +65,7 @@ export function ChatbotWidget({ companyCode, companyName }: ChatbotWidgetProps) 
         ...prev,
         {
           role: "assistant",
-          content: "오류가 발생했습니다. 잠시 후 다시 시도해주세요.",
+          content: t("errorMessage"),
         },
       ]);
     } finally {
@@ -73,38 +75,34 @@ export function ChatbotWidget({ companyCode, companyName }: ChatbotWidgetProps) 
 
   return (
     <>
-      {/* Floating trigger button */}
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
           className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full bg-primary text-primary-foreground shadow-lg hover:shadow-xl hover:scale-105 transition-all flex items-center justify-center"
-          aria-label="챗봇 열기"
+          aria-label={t("openChatbot")}
         >
           <MessageCircle className="w-6 h-6" />
         </button>
       )}
 
-      {/* Chat panel */}
       {isOpen && (
         <div className="fixed bottom-0 right-0 sm:bottom-6 sm:right-6 z-50 w-full sm:w-[380px] h-[100dvh] sm:h-[520px] bg-background border sm:rounded-2xl shadow-2xl flex flex-col overflow-hidden">
-          {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b bg-primary text-primary-foreground shrink-0">
             <div className="flex items-center gap-2">
               <Bot className="w-5 h-5" />
-              <span className="font-medium text-sm">{companyName || "정책 안내"} 챗봇</span>
+              <span className="font-medium text-sm">{companyName || t("policyGuide")} {t("chatbotLabel")}</span>
             </div>
-            <button onClick={() => setIsOpen(false)} className="hover:opacity-80" aria-label="닫기">
+            <button onClick={() => setIsOpen(false)} className="hover:opacity-80" aria-label={t("close")}>
               <X className="w-5 h-5" />
             </button>
           </div>
 
-          {/* Messages area */}
           <div className="flex-1 overflow-y-auto p-4">
             {messages.length === 0 && (
               <div className="text-center text-sm text-muted-foreground py-8">
                 <Bot className="w-10 h-10 mx-auto mb-3 text-muted-foreground/50" />
-                <p>안녕하세요!</p>
-                <p>회사 정책에 관해 궁금한 점을 물어보세요.</p>
+                <p>{t("hello")}</p>
+                <p>{t("askQuestion")}</p>
               </div>
             )}
             <div className="space-y-3">
@@ -139,7 +137,6 @@ export function ChatbotWidget({ companyCode, companyName }: ChatbotWidgetProps) 
             </div>
           </div>
 
-          {/* Input area */}
           <div className="border-t p-3 shrink-0">
             <form
               onSubmit={(e) => {
@@ -152,7 +149,7 @@ export function ChatbotWidget({ companyCode, companyName }: ChatbotWidgetProps) 
                 ref={inputRef}
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                placeholder="질문을 입력하세요..."
+                placeholder={t("inputPlaceholder")}
                 disabled={loading}
                 className="flex-1"
               />

@@ -55,6 +55,7 @@ export default function ReportSubmitPage() {
   const t = useTranslations("report.submit");
   const ts = useTranslations("report.success");
   const tai = useTranslations("report.ai");
+  const tc = useTranslations("common");
   const params = useParams();
   const companyCode = params.companyCode as string;
 
@@ -128,7 +129,7 @@ export default function ReportSubmitPage() {
 
     const totalSize = [...files, ...validFiles].reduce((s, f) => s + f.size, 0);
     if (totalSize > MAX_TOTAL_SIZE) {
-      setError("총 파일 크기는 50MB를 초과할 수 없습니다");
+      setError(t("totalFileSizeError"));
       return;
     }
 
@@ -145,7 +146,7 @@ export default function ReportSubmitPage() {
     const content = form.getValues("content");
     const title = form.getValues("title");
     if (!content || content.length < 20) {
-      setError("AI 검증을 위해 최소 20자 이상의 내용을 입력해주세요");
+      setError(t("aiMinContent"));
       return;
     }
 
@@ -160,7 +161,7 @@ export default function ReportSubmitPage() {
       const data = await res.json();
       setAiValidation(data);
     } catch {
-      setError("AI 검증 중 오류가 발생했습니다");
+      setError(t("aiValidateError"));
     } finally {
       setAiLoading(false);
     }
@@ -172,12 +173,12 @@ export default function ReportSubmitPage() {
     const reportTypeId = form.getValues("reportTypeId");
 
     if (!reportTypeId) {
-      setError("제보 유형을 선택해주세요");
+      setError(t("selectReportType"));
       return;
     }
 
     if (!content || content.length < 20) {
-      setError("AI 업데이트를 위해 최소 20자 이상의 내용을 입력해주세요");
+      setError(t("aiEnhanceMinContent"));
       return;
     }
 
@@ -200,7 +201,7 @@ export default function ReportSubmitPage() {
         setEnhancedContent(data.enhancedContent);
       }
     } catch {
-      setError("AI 내용 보강 중 오류가 발생했습니다");
+      setError(t("aiEnhanceError"));
       setShowEnhanceDialog(false);
     } finally {
       setAiEnhanceLoading(false);
@@ -249,7 +250,7 @@ export default function ReportSubmitPage() {
       setReportNumber(result.reportNumber);
       setSubmitted(true);
     } catch {
-      setError("제보 접수 중 오류가 발생했습니다");
+      setError(t("submitError"));
     } finally {
       setLoading(false);
     }
@@ -345,7 +346,7 @@ export default function ReportSubmitPage() {
         {/* Title */}
         <div className="space-y-2">
           <Label htmlFor="title">{t("reportTitle")} *</Label>
-          <Input id="title" {...form.register("title")} placeholder="제보 제목을 입력하세요" maxLength={40} />
+          <Input id="title" {...form.register("title")} placeholder={t("titlePlaceholder")} maxLength={40} />
           {form.formState.errors.title && (
             <p className="text-sm text-destructive">{form.formState.errors.title.message}</p>
           )}
@@ -357,7 +358,7 @@ export default function ReportSubmitPage() {
           <Textarea
             id="content"
             {...form.register("content")}
-            placeholder={reportGuideMessage || "제보 내용을 상세히 작성해주세요. 누가, 무엇을, 언제, 어디서, 왜, 어떻게 했는지 포함해주세요."}
+            placeholder={reportGuideMessage || t("contentPlaceholder")}
             rows={10}
             className="min-h-[240px]"
           />
@@ -371,7 +372,7 @@ export default function ReportSubmitPage() {
             </Button>
             <Button type="button" variant="outline" size="sm" onClick={handleAiEnhance} disabled={aiEnhanceLoading}>
               {aiEnhanceLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Sparkles className="h-4 w-4 mr-2" />}
-              AI 제보내용 업데이트
+              {t("aiEnhanceButton")}
             </Button>
           </div>
         </div>
@@ -384,7 +385,7 @@ export default function ReportSubmitPage() {
             onClick={() => fileInputRef.current?.click()}
           >
             <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
-            <p className="text-sm font-medium mb-1">클릭하여 파일을 선택하세요</p>
+            <p className="text-sm font-medium mb-1">{t("clickToSelectFile")}</p>
             <p className="text-xs text-muted-foreground">{t("attachmentHelp")}</p>
             <input
               ref={fileInputRef}
@@ -413,7 +414,7 @@ export default function ReportSubmitPage() {
             <Label htmlFor="password">{t("password")} *</Label>
             <Input id="password" type="password" {...form.register("password")} />
             <p className="text-xs text-muted-foreground">
-              {t("passwordHelp")} (최소 {minPasswordLength}자{requireSpecialChars ? ", 특수문자 포함 필수" : ""})
+              {t("passwordHelp")} ({t("minChars", { min: minPasswordLength })}{requireSpecialChars ? t("specialCharsRequired") : ""})
             </p>
             {form.formState.errors.password && (
               <p className="text-sm text-destructive">{form.formState.errors.password.message}</p>
@@ -491,12 +492,12 @@ export default function ReportSubmitPage() {
       <Dialog open={showEnhanceDialog} onOpenChange={setShowEnhanceDialog}>
         <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>AI 제보내용 업데이트</DialogTitle>
+            <DialogTitle>{t("aiEnhanceTitle")}</DialogTitle>
           </DialogHeader>
           {aiEnhanceLoading ? (
             <div className="flex flex-col items-center py-8 gap-3">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              <p className="text-sm text-muted-foreground">AI가 제보 내용을 보강하고 있습니다...</p>
+              <p className="text-sm text-muted-foreground">{t("aiEnhancing")}</p>
             </div>
           ) : enhancedContent ? (
             <div className="space-y-4">
@@ -505,10 +506,10 @@ export default function ReportSubmitPage() {
               </div>
               <div className="flex justify-end gap-2">
                 <Button variant="outline" onClick={() => setShowEnhanceDialog(false)}>
-                  취소
+                  {tc("cancel")}
                 </Button>
                 <Button onClick={handleApplyEnhanced}>
-                  적용
+                  {tc("apply")}
                 </Button>
               </div>
             </div>

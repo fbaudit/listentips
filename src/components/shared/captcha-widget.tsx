@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useImperativeHandle, forwardRef, useState } from "react";
+import { useTranslations } from "next-intl";
 
 export interface CaptchaWidgetRef {
   reset: () => void;
@@ -38,6 +39,7 @@ export const CaptchaWidget = forwardRef<CaptchaWidgetRef, CaptchaWidgetProps>(
     const widgetIdRef = useRef<string | null>(null);
     const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
     const [loadError, setLoadError] = useState(false);
+    const t = useTranslations("captcha");
 
     useImperativeHandle(ref, () => ({
       reset: () => {
@@ -64,7 +66,6 @@ export const CaptchaWidget = forwardRef<CaptchaWidgetRef, CaptchaWidgetProps>(
         });
       }
 
-      // Timeout: if Turnstile doesn't load within 10 seconds, show error
       const timeout = setTimeout(() => {
         if (!window.turnstile || !widgetIdRef.current) {
           setLoadError(true);
@@ -120,13 +121,13 @@ export const CaptchaWidget = forwardRef<CaptchaWidgetRef, CaptchaWidgetProps>(
     if (loadError) {
       return (
         <div className="text-center text-sm text-muted-foreground py-2">
-          <p>보안 인증 로드에 실패했습니다.</p>
+          <p>{t("loadFailed")}</p>
           <button
             type="button"
             className="text-primary underline mt-1"
             onClick={() => window.location.reload()}
           >
-            페이지 새로고침
+            {t("refreshPage")}
           </button>
         </div>
       );

@@ -3,6 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { verifyReportAccess } from "@/lib/auth/report-access";
 import { getCompanyDataKey, encryptWithKey, decryptWithKey, isEncrypted } from "@/lib/utils/data-encryption";
 import { notifyCompanyAdmins } from "@/lib/utils/notify-company-admins";
+import { createAuditLog } from "@/lib/utils/audit-log";
 
 // Check if the id looks like a UUID
 function isUUID(str: string): boolean {
@@ -160,6 +161,22 @@ export async function PATCH(
     );
   }
 
+  // Audit log
+  const isStatusChange = editHistory.some((h) => h.field_name === "status_id");
+  createAuditLog({
+    request,
+    companyId: current.company_id,
+    actorId: access.role !== "reporter" ? (access as { userId?: string }).userId || null : null,
+    actorName: access.role,
+    action: isStatusChange ? "report.status_change" : "report.update",
+    entityType: "report",
+    entityId: reportId,
+    changes: {
+      old: Object.fromEntries(editHistory.map((h) => [h.field_name, h.old_value])),
+      new: Object.fromEntries(editHistory.map((h) => [h.field_name, h.new_value])),
+    },
+  }).catch((err) => console.error("Audit log error:", err));
+
   // Notify company admins when reporter modifies title/content
   const reporterContentChanges = editHistory.filter(
     (h) => h.field_name === "title" || h.field_name === "content"
@@ -221,6 +238,17 @@ export async function DELETE(
       { status: 403 }
     );
   }
+
+  // Audit log before deletion
+  createAuditLog({
+    request,
+    companyId: access.companyId,
+    actorId: access.role !== "reporter" ? (access as { userId?: string }).userId || null : null,
+    actorName: access.role,
+    action: "report.delete",
+    entityType: "report",
+    entityId: report.id,
+  }).catch((err) => console.error("Audit log error:", err));
 
   // Delete attachments from storage
   const { data: attachments } = await supabase

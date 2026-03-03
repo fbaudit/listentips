@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { applicationSchema, type ApplicationInput } from "@/lib/validators/application";
@@ -88,6 +88,7 @@ const INDUSTRY_OPTIONS = [
 
 export default function ApplyPage() {
   const t = useTranslations("apply");
+  const locale = useLocale() as "ko" | "en" | "ja" | "zh";
   const [currentStep, setCurrentStep] = useState(0);
   const [selectedPlan, setSelectedPlan] = useState<string>("free_trial");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -802,21 +803,21 @@ export default function ApplyPage() {
                     onClick={() => setSelectedPlan(key)}
                   >
                     <CardHeader className="text-center">
-                      <CardTitle className="text-lg">{plan.name.ko}</CardTitle>
+                      <CardTitle className="text-lg">{plan.name[locale]}</CardTitle>
                       <div className="text-2xl font-bold">
                         {plan.price.KRW === 0
-                          ? "무료"
+                          ? t("step3.free")
                           : `₩${plan.price.KRW.toLocaleString()}`}
                       </div>
                       {key !== "free_trial" && (
                         <p className="text-xs text-muted-foreground">
-                          {key === "monthly" ? "/ 월" : "/ 년"}
+                          {key === "monthly" || key === "premium_monthly" ? t("step3.perMonth") : t("step3.perYear")}
                         </p>
                       )}
                     </CardHeader>
                     <CardContent>
                       <ul className="space-y-2 text-sm">
-                        {plan.features.ko.map((feature, i) => (
+                        {plan.features[locale].map((feature, i) => (
                           <li key={i} className="flex items-start gap-2">
                             <CheckCircle2 className="w-4 h-4 text-green-500 mt-0.5 shrink-0" />
                             {feature}
@@ -828,7 +829,7 @@ export default function ApplyPage() {
                 ))}
               </div>
               <p className="text-sm text-muted-foreground text-center">
-                모든 신규 가입은 30일 무료 체험으로 시작됩니다. 결제는 승인 후 별도 안내됩니다.
+                {t("step3.notice")}
               </p>
             </div>
           )}
@@ -972,7 +973,7 @@ export default function ApplyPage() {
                     <CreditCard className="w-4 h-4" /> 요금제
                   </h3>
                   <p className="text-sm">
-                    {PLANS[selectedPlan as keyof typeof PLANS]?.name.ko} (30일 무료 체험 포함)
+                    {PLANS[selectedPlan as keyof typeof PLANS]?.name[locale]} ({t("step5.freeTrialIncluded")})
                   </p>
                 </div>
               </div>

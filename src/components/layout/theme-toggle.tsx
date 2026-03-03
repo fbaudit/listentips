@@ -2,12 +2,14 @@
 
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Moon, Sun } from "lucide-react";
 
 export function ThemeToggle() {
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
+  const t = useTranslations("theme");
 
   useEffect(() => setMounted(true), []);
 
@@ -27,7 +29,7 @@ export function ThemeToggle() {
       size="icon"
       className="h-8 w-8"
       onClick={() => setTheme(isDark ? "light" : "dark")}
-      title={isDark ? "라이트 모드" : "다크 모드"}
+      title={isDark ? t("lightMode") : t("darkMode")}
     >
       {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
     </Button>

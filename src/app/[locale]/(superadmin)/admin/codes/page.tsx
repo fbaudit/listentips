@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { useTranslations } from "next-intl";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -60,6 +61,9 @@ interface DefaultContentBlock {
 }
 
 export default function AdminCodesPage() {
+  const t = useTranslations("admin.codes");
+  const tc = useTranslations("common");
+
   // ── Report Types State ──
   const [reportTypes, setReportTypes] = useState<DefaultReportType[]>([]);
   const [loading, setLoading] = useState(true);
@@ -145,7 +149,7 @@ export default function AdminCodesPage() {
 
   const handleSave = async () => {
     if (!form.type_name.trim()) {
-      toast.error("유형명을 입력해주세요");
+      toast.error(t("enterTypeName"));
       return;
     }
     setSaving(true);
@@ -157,11 +161,11 @@ export default function AdminCodesPage() {
           body: JSON.stringify(form),
         });
         if (res.ok) {
-          toast.success("기본 제보 유형이 수정되었습니다");
+          toast.success(t("reportTypeUpdated"));
           setDialogOpen(false);
           loadReportTypes();
         } else {
-          toast.error("수정 중 오류가 발생했습니다");
+          toast.error(t("updateError"));
         }
       } else {
         const res = await fetch("/api/admin/default-report-types", {
@@ -170,32 +174,32 @@ export default function AdminCodesPage() {
           body: JSON.stringify(form),
         });
         if (res.ok) {
-          toast.success("기본 제보 유형이 추가되었습니다");
+          toast.success(t("reportTypeAdded"));
           setDialogOpen(false);
           loadReportTypes();
         } else {
-          toast.error("추가 중 오류가 발생했습니다");
+          toast.error(t("addError"));
         }
       }
     } catch {
-      toast.error("처리 중 오류가 발생했습니다");
+      toast.error(t("processError"));
     } finally {
       setSaving(false);
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("정말 삭제하시겠습니까?")) return;
+    if (!confirm(t("confirmDelete"))) return;
     try {
       const res = await fetch(`/api/admin/default-report-types/${id}`, { method: "DELETE" });
       if (res.ok) {
-        toast.success("기본 제보 유형이 삭제되었습니다");
+        toast.success(t("reportTypeDeleted"));
         loadReportTypes();
       } else {
-        toast.error("삭제 중 오류가 발생했습니다");
+        toast.error(t("deleteError"));
       }
     } catch {
-      toast.error("삭제 중 오류가 발생했습니다");
+      toast.error(t("deleteError"));
     }
   };
 
@@ -224,7 +228,7 @@ export default function AdminCodesPage() {
 
   const handleSaveStatus = async () => {
     if (!statusForm.status_name.trim()) {
-      toast.error("상태명을 입력해주세요");
+      toast.error(t("enterStatusName"));
       return;
     }
     setSavingStatus(true);
@@ -236,11 +240,11 @@ export default function AdminCodesPage() {
           body: JSON.stringify(statusForm),
         });
         if (res.ok) {
-          toast.success("기본 상태 코드가 수정되었습니다");
+          toast.success(t("statusUpdated"));
           setStatusDialogOpen(false);
           loadStatuses();
         } else {
-          toast.error("수정 중 오류가 발생했습니다");
+          toast.error(t("updateError"));
         }
       } else {
         const res = await fetch("/api/admin/default-report-statuses", {
@@ -249,32 +253,32 @@ export default function AdminCodesPage() {
           body: JSON.stringify(statusForm),
         });
         if (res.ok) {
-          toast.success("기본 상태 코드가 추가되었습니다");
+          toast.success(t("statusAdded"));
           setStatusDialogOpen(false);
           loadStatuses();
         } else {
-          toast.error("추가 중 오류가 발생했습니다");
+          toast.error(t("addError"));
         }
       }
     } catch {
-      toast.error("처리 중 오류가 발생했습니다");
+      toast.error(t("processError"));
     } finally {
       setSavingStatus(false);
     }
   };
 
   const handleDeleteStatus = async (id: string) => {
-    if (!confirm("정말 삭제하시겠습니까?")) return;
+    if (!confirm(t("confirmDelete"))) return;
     try {
       const res = await fetch(`/api/admin/default-report-statuses/${id}`, { method: "DELETE" });
       if (res.ok) {
-        toast.success("기본 상태 코드가 삭제되었습니다");
+        toast.success(t("statusDeleted"));
         loadStatuses();
       } else {
-        toast.error("삭제 중 오류가 발생했습니다");
+        toast.error(t("deleteError"));
       }
     } catch {
-      toast.error("삭제 중 오류가 발생했습니다");
+      toast.error(t("deleteError"));
     }
   };
 
@@ -289,10 +293,10 @@ export default function AdminCodesPage() {
       if (res.ok) {
         loadContentBlocks();
       } else {
-        toast.error("블록 추가에 실패했습니다");
+        toast.error(t("blockAddFailed"));
       }
     } catch {
-      toast.error("블록 추가 중 오류가 발생했습니다");
+      toast.error(t("blockAddError"));
     }
   };
 
@@ -302,10 +306,10 @@ export default function AdminCodesPage() {
       if (res.ok) {
         setContentBlocks((prev) => prev.filter((b) => b.id !== id));
       } else {
-        toast.error("블록 삭제에 실패했습니다");
+        toast.error(t("blockDeleteFailed"));
       }
     } catch {
-      toast.error("블록 삭제 중 오류가 발생했습니다");
+      toast.error(t("blockDeleteError"));
     }
   };
 
@@ -323,13 +327,13 @@ export default function AdminCodesPage() {
         )
       );
       if (results.every((r) => r.ok)) {
-        toast.success("안내 블록이 저장되었습니다");
+        toast.success(t("blocksSaved"));
         loadContentBlocks();
       } else {
-        toast.error("일부 블록 저장에 실패했습니다");
+        toast.error(t("blockSavePartialError"));
       }
     } catch {
-      toast.error("저장 중 오류가 발생했습니다");
+      toast.error(t("blockSaveError"));
     } finally {
       setSavingBlocks(false);
     }
@@ -346,8 +350,8 @@ export default function AdminCodesPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">코드 관리</h1>
-        <p className="text-muted-foreground">제보 유형 및 상태 코드를 관리합니다</p>
+        <h1 className="text-2xl font-bold">{t("title")}</h1>
+        <p className="text-muted-foreground">{t("description")}</p>
       </div>
 
       {/* ── 기본 제보 유형 ── */}
@@ -355,12 +359,12 @@ export default function AdminCodesPage() {
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle>기본 제보 유형</CardTitle>
-              <CardDescription>신규 기업 등록 시 자동으로 생성되는 기본 제보 유형입니다</CardDescription>
+              <CardTitle>{t("defaultReportTypes")}</CardTitle>
+              <CardDescription>{t("defaultReportTypesDesc")}</CardDescription>
             </div>
             <Button size="sm" onClick={() => openDialog()}>
               <Plus className="w-4 h-4 mr-2" />
-              추가
+              {t("add")}
             </Button>
           </div>
         </CardHeader>
@@ -368,13 +372,13 @@ export default function AdminCodesPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>유형명</TableHead>
-                <TableHead>영어</TableHead>
-                <TableHead>일본어</TableHead>
-                <TableHead>중국어</TableHead>
-                <TableHead>코드</TableHead>
-                <TableHead>설명</TableHead>
-                <TableHead>비고</TableHead>
+                <TableHead>{t("typeName")}</TableHead>
+                <TableHead>{t("english")}</TableHead>
+                <TableHead>{t("japanese")}</TableHead>
+                <TableHead>{t("chinese")}</TableHead>
+                <TableHead>{t("code")}</TableHead>
+                <TableHead>{t("descriptionLabel")}</TableHead>
+                <TableHead>{t("notes")}</TableHead>
                 <TableHead className="w-[80px]"></TableHead>
               </TableRow>
             </TableHeader>
@@ -382,7 +386,7 @@ export default function AdminCodesPage() {
               {reportTypes.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
-                    등록된 기본 제보 유형이 없습니다
+                    {t("noReportTypes")}
                   </TableCell>
                 </TableRow>
               ) : (
@@ -391,7 +395,7 @@ export default function AdminCodesPage() {
                     <TableCell className="font-medium">
                       <div className="flex items-center gap-2">
                         {rt.type_name}
-                        {!rt.is_active && <Badge variant="secondary">비활성</Badge>}
+                        {!rt.is_active && <Badge variant="secondary">{t("inactive")}</Badge>}
                       </div>
                     </TableCell>
                     <TableCell className="text-muted-foreground text-sm">{rt.type_name_en || "-"}</TableCell>
@@ -440,12 +444,12 @@ export default function AdminCodesPage() {
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle>기본 상태 코드</CardTitle>
-              <CardDescription>신규 기업 등록 시 자동으로 생성되는 제보 처리 상태 코드입니다</CardDescription>
+              <CardTitle>{t("defaultStatuses")}</CardTitle>
+              <CardDescription>{t("defaultStatusesDesc")}</CardDescription>
             </div>
             <Button size="sm" onClick={() => openStatusDialog()}>
               <Plus className="w-4 h-4 mr-2" />
-              추가
+              {t("add")}
             </Button>
           </div>
         </CardHeader>
@@ -453,12 +457,12 @@ export default function AdminCodesPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>상태명</TableHead>
-                <TableHead>영어</TableHead>
-                <TableHead>일본어</TableHead>
-                <TableHead>중국어</TableHead>
-                <TableHead>색상</TableHead>
-                <TableHead>속성</TableHead>
+                <TableHead>{t("statusName")}</TableHead>
+                <TableHead>{t("english")}</TableHead>
+                <TableHead>{t("japanese")}</TableHead>
+                <TableHead>{t("chinese")}</TableHead>
+                <TableHead>{t("color")}</TableHead>
+                <TableHead>{t("attributes")}</TableHead>
                 <TableHead className="w-[80px]"></TableHead>
               </TableRow>
             </TableHeader>
@@ -466,7 +470,7 @@ export default function AdminCodesPage() {
               {statuses.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
-                    등록된 기본 상태 코드가 없습니다
+                    {t("noStatuses")}
                   </TableCell>
                 </TableRow>
               ) : (
@@ -475,7 +479,7 @@ export default function AdminCodesPage() {
                     <TableCell className="font-medium">
                       <div className="flex items-center gap-2">
                         {st.status_name}
-                        {!st.is_active && <Badge variant="secondary">비활성</Badge>}
+                        {!st.is_active && <Badge variant="secondary">{t("inactive")}</Badge>}
                       </div>
                     </TableCell>
                     <TableCell className="text-muted-foreground text-sm">{st.status_name_en || "-"}</TableCell>
@@ -489,8 +493,8 @@ export default function AdminCodesPage() {
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1">
-                        {st.is_default && <Badge variant="default" className="text-xs">기본</Badge>}
-                        {st.is_terminal && <Badge variant="secondary" className="text-xs">종결</Badge>}
+                        {st.is_default && <Badge variant="default" className="text-xs">{t("default")}</Badge>}
+                        {st.is_terminal && <Badge variant="secondary" className="text-xs">{t("terminal")}</Badge>}
                       </div>
                     </TableCell>
                     <TableCell>
@@ -516,19 +520,19 @@ export default function AdminCodesPage() {
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle>채널 메인 안내 블록</CardTitle>
-              <CardDescription>신규 기업 등록 시 자동으로 생성되는 제보 채널 메인 페이지 하단 안내 블록입니다. 드래그하여 순서를 변경할 수 있습니다.</CardDescription>
+              <CardTitle>{t("contentBlocks")}</CardTitle>
+              <CardDescription>{t("contentBlocksDesc")}</CardDescription>
             </div>
             <Button size="sm" onClick={handleAddBlock}>
               <Plus className="w-4 h-4 mr-2" />
-              블록 추가
+              {t("addBlock")}
             </Button>
           </div>
         </CardHeader>
         <CardContent className="space-y-3">
           {contentBlocks.length === 0 ? (
             <p className="text-sm text-muted-foreground text-center py-6 border-2 border-dashed rounded-lg">
-              안내 블록이 없습니다. 블록을 추가하세요.
+              {t("noBlocks")}
             </p>
           ) : (
             <div className="space-y-2">
@@ -569,7 +573,7 @@ export default function AdminCodesPage() {
                             prev.map((b) => (b.id === block.id ? { ...b, content: html } : b))
                           );
                         }}
-                        placeholder="안내 내용을 입력하세요"
+                        placeholder={t("blockContentPlaceholder")}
                       />
                     </div>
                     <Button
@@ -590,7 +594,7 @@ export default function AdminCodesPage() {
               <Separator />
               <Button onClick={handleSaveBlocks} disabled={savingBlocks}>
                 {savingBlocks ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
-                저장
+                {tc("save")}
               </Button>
             </>
           )}
@@ -601,15 +605,15 @@ export default function AdminCodesPage() {
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-[90vw] w-[1200px] max-h-[90vh] flex flex-col">
           <DialogHeader>
-            <DialogTitle>{editing ? "기본 제보 유형 수정" : "기본 제보 유형 추가"}</DialogTitle>
+            <DialogTitle>{editing ? t("editReportType") : t("addReportType")}</DialogTitle>
             <DialogDescription>
-              {editing ? "기본 제보 유형 정보를 수정합니다" : "신규 기업에 자동 생성될 기본 제보 유형을 추가합니다"}
+              {editing ? t("editReportTypeDesc") : t("addReportTypeDesc")}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 overflow-y-auto flex-1 pr-2">
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="drt_type_name">유형명 *</Label>
+                <Label htmlFor="drt_type_name">{t("typeNameRequired")}</Label>
                 <Input
                   id="drt_type_name"
                   value={form.type_name}
@@ -618,7 +622,7 @@ export default function AdminCodesPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="drt_type_name_en">유형명 (영어)</Label>
+                <Label htmlFor="drt_type_name_en">{t("typeNameEn")}</Label>
                 <Input
                   id="drt_type_name_en"
                   value={form.type_name_en}
@@ -627,7 +631,7 @@ export default function AdminCodesPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="drt_type_name_ja">유형명 (일본어)</Label>
+                <Label htmlFor="drt_type_name_ja">{t("typeNameJa")}</Label>
                 <Input
                   id="drt_type_name_ja"
                   value={form.type_name_ja}
@@ -636,7 +640,7 @@ export default function AdminCodesPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="drt_type_name_zh">유형명 (중국어)</Label>
+                <Label htmlFor="drt_type_name_zh">{t("typeNameZh")}</Label>
                 <Input
                   id="drt_type_name_zh"
                   value={form.type_name_zh}
@@ -646,7 +650,7 @@ export default function AdminCodesPage() {
               </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="drt_code">코드</Label>
+              <Label htmlFor="drt_code">{t("code")}</Label>
               <Input
                 id="drt_code"
                 value={form.code}
@@ -654,35 +658,35 @@ export default function AdminCodesPage() {
                 placeholder="예: FRAUD"
                 className="font-mono"
               />
-              <p className="text-xs text-muted-foreground">시스템 내부에서 사용되는 고유 코드입니다 (영문 대문자 권장)</p>
+              <p className="text-xs text-muted-foreground">{t("codeHelp")}</p>
             </div>
             <div className="space-y-2">
-              <Label>설명</Label>
+              <Label>{t("descriptionLabel")}</Label>
               <RichTextEditor
                 content={form.description}
                 onChange={(html) => setForm((f) => ({ ...f, description: html }))}
-                placeholder="해당 유형에 대한 설명을 입력하세요"
+                placeholder={t("descriptionPlaceholder")}
                 minHeight="240px"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="drt_notes">비고</Label>
+              <Label htmlFor="drt_notes">{t("notesLabel")}</Label>
               <Textarea
                 id="drt_notes"
                 value={form.notes}
                 onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
                 rows={2}
-                placeholder="추가 참고사항을 입력하세요"
+                placeholder={t("notesPlaceholder")}
               />
             </div>
           </div>
           <DialogFooter className="shrink-0">
             <Button variant="outline" onClick={() => setDialogOpen(false)}>
-              취소
+              {tc("cancel")}
             </Button>
             <Button onClick={handleSave} disabled={saving}>
               {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              {editing ? "수정" : "추가"}
+              {editing ? tc("edit") : t("add")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -692,15 +696,15 @@ export default function AdminCodesPage() {
       <Dialog open={statusDialogOpen} onOpenChange={setStatusDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{editingStatus ? "기본 상태 코드 수정" : "기본 상태 코드 추가"}</DialogTitle>
+            <DialogTitle>{editingStatus ? t("editStatus") : t("addStatus")}</DialogTitle>
             <DialogDescription>
-              {editingStatus ? "기본 상태 코드 정보를 수정합니다" : "신규 기업에 자동 생성될 기본 상태 코드를 추가합니다"}
+              {editingStatus ? t("editStatusDesc") : t("addStatusDesc")}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="ds_status_name">상태명 (한국어) *</Label>
+                <Label htmlFor="ds_status_name">{t("statusNameKo")}</Label>
                 <Input
                   id="ds_status_name"
                   value={statusForm.status_name}
@@ -709,7 +713,7 @@ export default function AdminCodesPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="ds_status_name_en">상태명 (영어)</Label>
+                <Label htmlFor="ds_status_name_en">{t("statusNameEn")}</Label>
                 <Input
                   id="ds_status_name_en"
                   value={statusForm.status_name_en}
@@ -720,7 +724,7 @@ export default function AdminCodesPage() {
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="ds_status_name_ja">상태명 (일본어)</Label>
+                <Label htmlFor="ds_status_name_ja">{t("statusNameJa")}</Label>
                 <Input
                   id="ds_status_name_ja"
                   value={statusForm.status_name_ja}
@@ -729,7 +733,7 @@ export default function AdminCodesPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="ds_status_name_zh">상태명 (중국어)</Label>
+                <Label htmlFor="ds_status_name_zh">{t("statusNameZh")}</Label>
                 <Input
                   id="ds_status_name_zh"
                   value={statusForm.status_name_zh}
@@ -739,7 +743,7 @@ export default function AdminCodesPage() {
               </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="ds_color_code">색상</Label>
+              <Label htmlFor="ds_color_code">{t("color")}</Label>
               <div className="flex items-center gap-3">
                 <input
                   type="color"
@@ -763,8 +767,8 @@ export default function AdminCodesPage() {
                   checked={statusForm.is_default}
                   onCheckedChange={(v) => setStatusForm((f) => ({ ...f, is_default: v }))}
                 />
-                <Label htmlFor="ds_is_default">기본 상태</Label>
-                <span className="text-xs text-muted-foreground">(제보 접수 시 초기 상태)</span>
+                <Label htmlFor="ds_is_default">{t("defaultStatus")}</Label>
+                <span className="text-xs text-muted-foreground">{t("defaultStatusHelp")}</span>
               </div>
               <div className="flex items-center gap-2">
                 <Switch
@@ -772,18 +776,18 @@ export default function AdminCodesPage() {
                   checked={statusForm.is_terminal}
                   onCheckedChange={(v) => setStatusForm((f) => ({ ...f, is_terminal: v }))}
                 />
-                <Label htmlFor="ds_is_terminal">종결 상태</Label>
-                <span className="text-xs text-muted-foreground">(처리 완료를 의미)</span>
+                <Label htmlFor="ds_is_terminal">{t("terminalStatus")}</Label>
+                <span className="text-xs text-muted-foreground">{t("terminalStatusHelp")}</span>
               </div>
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setStatusDialogOpen(false)}>
-              취소
+              {tc("cancel")}
             </Button>
             <Button onClick={handleSaveStatus} disabled={savingStatus}>
               {savingStatus && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              {editingStatus ? "수정" : "추가"}
+              {editingStatus ? tc("edit") : t("add")}
             </Button>
           </DialogFooter>
         </DialogContent>
