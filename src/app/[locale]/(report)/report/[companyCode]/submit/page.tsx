@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import {
   Select,
   SelectContent,
@@ -72,9 +72,13 @@ export default function ReportSubmitPage() {
   const [reportGuideMessage, setReportGuideMessage] = useState("");
   const [minPasswordLength, setMinPasswordLength] = useState(8);
   const [requireSpecialChars, setRequireSpecialChars] = useState(false);
+  const [useAiValidation, setUseAiValidation] = useState(false);
   const [aiEnhanceLoading, setAiEnhanceLoading] = useState(false);
   const [showEnhanceDialog, setShowEnhanceDialog] = useState(false);
-  const [enhancedContent, setEnhancedContent] = useState("");
+  const [enhancedStructured, setEnhancedStructured] = useState("");
+  const [enhancedNarrative, setEnhancedNarrative] = useState("");
+  const [enhancedTitle, setEnhancedTitle] = useState("");
+  const [selectedVersion, setSelectedVersion] = useState<"structured" | "narrative">("structured");
   const [submissionSuccessTitle, setSubmissionSuccessTitle] = useState("");
   const [submissionSuccessMessage, setSubmissionSuccessMessage] = useState("");
   const [copied, setCopied] = useState(false);
@@ -113,6 +117,9 @@ export default function ReportSubmitPage() {
           }
           if (data.company.submission_success_message) {
             setSubmissionSuccessMessage(data.company.submission_success_message);
+          }
+          if (data.company.use_ai_validation) {
+            setUseAiValidation(true);
           }
         }
       })
@@ -198,7 +205,10 @@ export default function ReportSubmitPage() {
         setError(data.error);
         setShowEnhanceDialog(false);
       } else {
-        setEnhancedContent(data.enhancedContent);
+        setEnhancedTitle(data.enhancedTitle || "");
+        setEnhancedStructured(data.structured || "");
+        setEnhancedNarrative(data.narrative || "");
+        setSelectedVersion("structured");
       }
     } catch {
       setError(t("aiEnhanceError"));
@@ -209,7 +219,12 @@ export default function ReportSubmitPage() {
   }
 
   function handleApplyEnhanced() {
-    form.setValue("content", enhancedContent, { shouldValidate: true });
+    if (enhancedTitle) {
+      form.setValue("title", enhancedTitle, { shouldValidate: true });
+    }
+    const raw = selectedVersion === "structured" ? enhancedStructured : enhancedNarrative;
+    const html = raw.split(/\n\n+/).map(p => `<p>${p.replace(/\n/g, "<br>")}</p>`).join("");
+    form.setValue("content", html, { shouldValidate: true });
     setShowEnhanceDialog(false);
   }
 
@@ -355,26 +370,37 @@ export default function ReportSubmitPage() {
         {/* Content */}
         <div className="space-y-2">
           <Label htmlFor="content">{t("reportContent")} *</Label>
-          <Textarea
-            id="content"
-            {...form.register("content")}
-            placeholder={reportGuideMessage || t("contentPlaceholder")}
-            rows={10}
-            className="min-h-[240px]"
+          {reportGuideMessage && (
+            <div className="text-sm text-muted-foreground bg-muted/50 border rounded-md px-3 py-2 whitespace-pre-line">
+              {reportGuideMessage}
+            </div>
+          )}
+          <RichTextEditor
+            content={form.watch("content")}
+            onChange={(html) => form.setValue("content", html, { shouldValidate: true })}
+            placeholder={t("contentPlaceholder")}
+            minHeight="240px"
+            maxHeight="480px"
           />
           {form.formState.errors.content && (
             <p className="text-sm text-destructive">{form.formState.errors.content.message}</p>
           )}
-          <div className="flex flex-wrap gap-2">
-            <Button type="button" variant="outline" size="sm" onClick={handleAiValidate}>
-              <Brain className="h-4 w-4 mr-2" />
-              {t("aiValidate")}
-            </Button>
-            <Button type="button" variant="outline" size="sm" onClick={handleAiEnhance} disabled={aiEnhanceLoading}>
-              {aiEnhanceLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Sparkles className="h-4 w-4 mr-2" />}
-              {t("aiEnhanceButton")}
-            </Button>
-          </div>
+          {useAiValidation && (() => {
+            const contentText = (form.watch("content") || "").replace(/<[^>]*>/g, "").trim();
+            const hasContent = contentText.length >= 20;
+            return (
+              <div className="flex flex-wrap gap-2 mt-1 justify-end">
+                <Button type="button" variant="default" size="default" onClick={handleAiValidate} disabled={!hasContent}>
+                  <Brain className="h-4 w-4 mr-2" />
+                  {t("aiValidate")}
+                </Button>
+                <Button type="button" variant="default" size="default" onClick={handleAiEnhance} disabled={aiEnhanceLoading || !hasContent}>
+                  {aiEnhanceLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Sparkles className="h-4 w-4 mr-2" />}
+                  {t("aiEnhanceButton")}
+                </Button>
+              </div>
+            );
+          })()}
         </div>
 
         {/* File Upload */}
@@ -499,10 +525,34 @@ export default function ReportSubmitPage() {
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
               <p className="text-sm text-muted-foreground">{t("aiEnhancing")}</p>
             </div>
-          ) : enhancedContent ? (
+          ) : (enhancedStructured || enhancedNarrative) ? (
             <div className="space-y-4">
-              <div className="bg-muted rounded-lg p-4 whitespace-pre-wrap text-sm break-words">
-                {enhancedContent}
+              {enhancedTitle && (
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-muted-foreground">{t("aiEnhancedTitle")}</p>
+                  <div className="bg-primary/5 border border-primary/20 rounded-lg px-4 py-2 font-medium">
+                    {enhancedTitle}
+                  </div>
+                </div>
+              )}
+              <div className="flex rounded-lg border overflow-hidden">
+                <button
+                  type="button"
+                  className={`flex-1 px-3 py-2 text-sm font-medium transition-colors ${selectedVersion === "structured" ? "bg-primary text-primary-foreground" : "bg-muted hover:bg-muted/80"}`}
+                  onClick={() => setSelectedVersion("structured")}
+                >
+                  {t("aiVersionStructured")}
+                </button>
+                <button
+                  type="button"
+                  className={`flex-1 px-3 py-2 text-sm font-medium transition-colors ${selectedVersion === "narrative" ? "bg-primary text-primary-foreground" : "bg-muted hover:bg-muted/80"}`}
+                  onClick={() => setSelectedVersion("narrative")}
+                >
+                  {t("aiVersionNarrative")}
+                </button>
+              </div>
+              <div className="bg-muted rounded-lg p-4 whitespace-pre-wrap text-sm break-words max-h-[40vh] overflow-y-auto">
+                {selectedVersion === "structured" ? enhancedStructured : enhancedNarrative}
               </div>
               <div className="flex justify-end gap-2">
                 <Button variant="outline" onClick={() => setShowEnhanceDialog(false)}>

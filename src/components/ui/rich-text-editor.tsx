@@ -216,9 +216,10 @@ interface RichTextEditorProps {
   onChange: (html: string) => void;
   placeholder?: string;
   minHeight?: string;
+  maxHeight?: string;
 }
 
-export function RichTextEditor({ content, onChange, placeholder, minHeight = "80px" }: RichTextEditorProps) {
+export function RichTextEditor({ content, onChange, placeholder, minHeight = "80px", maxHeight }: RichTextEditorProps) {
   const editor = useEditor({
     immediatelyRender: false,
     extensions: [
@@ -255,15 +256,14 @@ export function RichTextEditor({ content, onChange, placeholder, minHeight = "80
     if (editor && content !== editor.getHTML()) {
       editor.commands.setContent(content);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [editor, content]);
 
   if (!editor) return null;
 
   return (
     <div className="border rounded-md overflow-hidden bg-background">
       <Toolbar editor={editor} />
-      <div className="relative">
+      <div className="relative" style={maxHeight ? { maxHeight, overflowY: "auto" } : undefined}>
         <EditorContent editor={editor} />
         {editor.isEmpty && placeholder && (
           <p className="absolute top-2 left-3 text-sm text-muted-foreground pointer-events-none">

@@ -50,14 +50,18 @@ export async function POST(request: NextRequest) {
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
       return NextResponse.json({
-        enhancedContent: text.trim(),
+        enhancedTitle: "",
+        structured: text.trim(),
+        narrative: text.trim(),
       });
     }
 
     const result = JSON.parse(jsonMatch[0]);
 
     return NextResponse.json({
-      enhancedContent: result.enhancedContent || text.trim(),
+      enhancedTitle: result.enhancedTitle || "",
+      structured: result.structured || result.enhancedContent || text.trim(),
+      narrative: result.narrative || result.enhancedContent || text.trim(),
     });
   } catch (error) {
     console.error("AI enhance error:", error);

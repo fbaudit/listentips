@@ -43,7 +43,7 @@ export function SuperAdminSidebar({ allowedMenus, mobile }: SuperAdminSidebarPro
     : navItems;
 
   return (
-    <aside className={cn("w-64 flex-col border-r bg-card min-h-screen", mobile ? "flex" : "hidden lg:flex")}>
+    <aside className={cn("w-64 shrink-0 flex-col border-r bg-card min-h-screen", mobile ? "flex" : "hidden lg:flex")}>
       <div className="flex items-center gap-2 px-6 py-4 border-b">
         <Shield className="h-6 w-6 text-primary" />
         <span className="font-bold">Super Admin</span>
@@ -56,7 +56,7 @@ export function SuperAdminSidebar({ allowedMenus, mobile }: SuperAdminSidebarPro
               key={item.href}
               href={item.href}
               className={cn(
-                "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
+                "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors whitespace-nowrap",
                 isActive
                   ? "bg-primary text-primary-foreground"
                   : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"

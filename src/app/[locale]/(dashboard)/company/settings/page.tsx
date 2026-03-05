@@ -150,6 +150,7 @@ export default function CompanySettingsPage() {
   const [editingRt, setEditingRt] = useState<ReportType | null>(null);
   const [rtForm, setRtForm] = useState({ type_name: "", type_name_en: "", type_name_ja: "", type_name_zh: "", code: "", description: "", notes: "" });
   const [rtSaving, setRtSaving] = useState(false);
+  const [rtAiGenerating, setRtAiGenerating] = useState(false);
 
   // Report statuses state
   const [reportStatuses, setReportStatuses] = useState<ReportStatus[]>([]);
@@ -427,6 +428,40 @@ export default function CompanySettingsPage() {
       setRtForm({ type_name: "", type_name_en: "", type_name_ja: "", type_name_zh: "", code: "", description: "", notes: "" });
     }
     setRtDialogOpen(true);
+  };
+
+  const handleAiGenerateRt = async () => {
+    if (!rtForm.type_name.trim()) {
+      toast.error("유형명을 먼저 입력해주세요");
+      return;
+    }
+    setRtAiGenerating(true);
+    try {
+      const res = await fetch("/api/company/report-types/ai-generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ typeName: rtForm.type_name.trim() }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setRtForm((f) => ({
+          ...f,
+          type_name_en: data.type_name_en || f.type_name_en,
+          type_name_ja: data.type_name_ja || f.type_name_ja,
+          type_name_zh: data.type_name_zh || f.type_name_zh,
+          code: data.code || f.code,
+          description: data.description || f.description,
+        }));
+        toast.success("AI가 자동으로 생성했습니다");
+      } else {
+        const data = await res.json();
+        toast.error(data.error || "AI 생성에 실패했습니다");
+      }
+    } catch {
+      toast.error("AI 생성 중 오류가 발생했습니다");
+    } finally {
+      setRtAiGenerating(false);
+    }
   };
 
   const handleSaveRt = async () => {
@@ -1083,7 +1118,7 @@ export default function CompanySettingsPage() {
                   </div>
                 </div>
 
-                <Button onClick={handleSaveSettings} disabled={saving}>
+                <Button onClick={handleSaveSettings} disabled={saving} className="w-full">
                   {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
                   저장
                 </Button>
@@ -1944,12 +1979,30 @@ export default function CompanySettingsPage() {
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="rt_type_name">유형명 *</Label>
-                <Input
-                  id="rt_type_name"
-                  value={rtForm.type_name}
-                  onChange={(e) => setRtForm((f) => ({ ...f, type_name: e.target.value }))}
-                  placeholder="예: 부정행위"
-                />
+                <div className="flex gap-2">
+                  <Input
+                    id="rt_type_name"
+                    value={rtForm.type_name}
+                    onChange={(e) => setRtForm((f) => ({ ...f, type_name: e.target.value }))}
+                    placeholder="예: 부정행위"
+                    className="flex-1"
+                  />
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={handleAiGenerateRt}
+                    disabled={rtAiGenerating || !rtForm.type_name.trim()}
+                    className="shrink-0 h-9"
+                  >
+                    {rtAiGenerating ? (
+                      <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" />
+                    ) : (
+                      <Sparkles className="w-3.5 h-3.5 mr-1" />
+                    )}
+                    AI 생성
+                  </Button>
+                </div>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="rt_type_name_en">유형명 (영어)</Label>

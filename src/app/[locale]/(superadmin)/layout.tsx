@@ -35,7 +35,7 @@ export default async function SuperAdminLayout({
     <SessionProvider basePath="/api/auth/admin">
       <div className="flex min-h-screen">
         <SuperAdminSidebar allowedMenus={allowedMenus} />
-        <div className="flex-1 flex flex-col">
+        <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
           <DashboardTopbar />
           <main className="flex-1 p-4 lg:p-6">{children}</main>
         </div>
