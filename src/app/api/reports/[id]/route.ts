@@ -30,7 +30,7 @@ export async function GET(
     .select(`
       id, report_number, title, content, created_at, updated_at, company_id,
       who_field, what_field, when_field, where_field, why_field, how_field,
-      ai_validation_score, view_count,
+      ai_validation_score, view_count, device_type,
       report_type:report_types(id, type_name, type_name_en),
       status:report_statuses(id, status_name, status_name_en, color_code, is_default),
       attachments:report_attachments(id, file_name, file_path, file_size, mime_type)

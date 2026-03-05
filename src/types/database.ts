@@ -190,6 +190,7 @@ export interface Report {
   ai_analysis_results: Record<string, Record<string, unknown>> | null;
   reporter_ip_hash: string | null;
   reporter_locale: string | null;
+  device_type: string | null;
   view_count: number;
   created_at: string;
   updated_at: string;

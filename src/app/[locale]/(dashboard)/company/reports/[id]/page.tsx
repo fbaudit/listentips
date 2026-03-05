@@ -21,7 +21,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { ArrowLeft, Send, Loader2, Download, FileText, Lock, Key, Clock, Trash2, History, Pencil, X, Check, Paperclip } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { ArrowLeft, Send, Loader2, Download, FileText, Lock, Key, Clock, Trash2, History, Pencil, X, Check, Paperclip, Monitor, Smartphone, Tablet, Eye } from "lucide-react";
 import { ALLOWED_FILE_TYPES, MAX_FILE_SIZE } from "@/lib/validators/report";
 import { Link } from "@/i18n/routing";
 import { useRouter } from "next/navigation";
@@ -44,6 +50,7 @@ interface ReportDetail {
   status: { id: string; status_name: string; status_name_en: string; color_code: string; is_default: boolean } | null;
   ai_validation_score: number | null;
   attachments: Array<{ id: string; file_name: string; file_size: number; mime_type: string }>;
+  device_type: string | null;
   created_at: string;
 }
 
@@ -114,6 +121,11 @@ export default function CompanyReportDetailPage() {
   const [commentFiles, setCommentFiles] = useState<File[]>([]);
   const commentFileRef = useRef<HTMLInputElement>(null);
   const [downloadingCommentAttId, setDownloadingCommentAttId] = useState<string | null>(null);
+
+  // Edit history detail dialog
+  const [historyDetailOpen, setHistoryDetailOpen] = useState(false);
+  const [historyDetailContent, setHistoryDetailContent] = useState("");
+  const [historyDetailLabel, setHistoryDetailLabel] = useState("");
 
   function fieldNameLabel(fieldName: string): string {
     const labels: Record<string, string> = {
@@ -468,9 +480,10 @@ export default function CompanyReportDetailPage() {
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="prose prose-sm max-w-none">
-                <p className="whitespace-pre-wrap break-words">{report.content}</p>
-              </div>
+              <div
+                className="prose prose-sm max-w-none break-words [&_p]:my-1 [&_p:empty]:min-h-[1em] [&_p:has(br:only-child)]:min-h-[1em]"
+                dangerouslySetInnerHTML={{ __html: report.content }}
+              />
 
               {/* 5W1H */}
               {(report.who_field || report.what_field || report.when_field || report.where_field) && (
@@ -782,6 +795,17 @@ export default function CompanyReportDetailPage() {
                 <span className="text-muted-foreground">{t("receivedDate")}</span>
                 <span>{new Date(report.created_at).toLocaleDateString("ko")}</span>
               </div>
+              {report.device_type && (
+                <div className="flex justify-between items-center">
+                  <span className="text-muted-foreground">{t("deviceType")}</span>
+                  <span className="flex items-center gap-1">
+                    {report.device_type === "mobile" && <Smartphone className="w-4 h-4" />}
+                    {report.device_type === "tablet" && <Tablet className="w-4 h-4" />}
+                    {report.device_type === "pc" && <Monitor className="w-4 h-4" />}
+                    {t(`device_${report.device_type}`)}
+                  </span>
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -835,13 +859,41 @@ export default function CompanyReportDetailPage() {
                       {(entry.field_name === "title" || entry.field_name === "content") && (
                         <div className="text-xs space-y-1">
                           {entry.old_value && (
-                            <div className="bg-red-50 text-red-700 rounded px-2 py-1 line-through break-all">
-                              {entry.old_value.length > 100 ? entry.old_value.substring(0, 100) + "..." : entry.old_value}
+                            <div className="flex items-start gap-1">
+                              <div className="flex-1 bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-400 rounded px-2 py-1 line-through break-all line-clamp-3">
+                                {entry.old_value.replace(/<[^>]*>/g, "")}
+                              </div>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6 shrink-0"
+                                onClick={() => {
+                                  setHistoryDetailContent(entry.old_value!);
+                                  setHistoryDetailLabel(`${fieldNameLabel(entry.field_name)} (${t("historyBefore")})`);
+                                  setHistoryDetailOpen(true);
+                                }}
+                              >
+                                <Eye className="h-3 w-3" />
+                              </Button>
                             </div>
                           )}
                           {entry.new_value && (
-                            <div className="bg-green-50 text-green-700 rounded px-2 py-1 break-all">
-                              {entry.new_value.length > 100 ? entry.new_value.substring(0, 100) + "..." : entry.new_value}
+                            <div className="flex items-start gap-1">
+                              <div className="flex-1 bg-green-50 dark:bg-green-950/30 text-green-700 dark:text-green-400 rounded px-2 py-1 break-all line-clamp-3">
+                                {entry.new_value.replace(/<[^>]*>/g, "")}
+                              </div>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6 shrink-0"
+                                onClick={() => {
+                                  setHistoryDetailContent(entry.new_value!);
+                                  setHistoryDetailLabel(`${fieldNameLabel(entry.field_name)} (${t("historyAfter")})`);
+                                  setHistoryDetailOpen(true);
+                                }}
+                              >
+                                <Eye className="h-3 w-3" />
+                              </Button>
                             </div>
                           )}
                         </div>
@@ -866,6 +918,19 @@ export default function CompanyReportDetailPage() {
           </Card>
         </div>
       </div>
+
+      {/* Edit History Detail Dialog */}
+      <Dialog open={historyDetailOpen} onOpenChange={setHistoryDetailOpen}>
+        <DialogContent className="max-w-2xl max-h-[80vh]">
+          <DialogHeader>
+            <DialogTitle>{historyDetailLabel}</DialogTitle>
+          </DialogHeader>
+          <div
+            className="prose prose-sm max-w-none break-words overflow-y-auto max-h-[60vh] [&_p]:my-1 [&_p:empty]:min-h-[1em] [&_p:has(br:only-child)]:min-h-[1em]"
+            dangerouslySetInnerHTML={{ __html: historyDetailContent }}
+          />
+        </DialogContent>
+      </Dialog>
 
       {/* Encryption Key Dialog */}
       <EncryptionKeyDialog

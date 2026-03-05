@@ -459,7 +459,13 @@
       "contentLabel": "내용",
       "statusChanged": "상태 변경",
       "attachmentAdded": "첨부파일 추가",
-      "attachmentRemoved": "첨부파일 삭제"
+      "attachmentRemoved": "첨부파일 삭제",
+      "deviceType": "접수 기기",
+      "device_pc": "PC",
+      "device_mobile": "모바일",
+      "device_tablet": "태블릿",
+      "historyBefore": "수정 전",
+      "historyAfter": "수정 후"
     },
     "settings": {
       "title": "회사 설정",

@@ -459,7 +459,13 @@
       "contentLabel": "Content",
       "statusChanged": "Status Changed",
       "attachmentAdded": "Attachment Added",
-      "attachmentRemoved": "Attachment Removed"
+      "attachmentRemoved": "Attachment Removed",
+      "deviceType": "Device",
+      "device_pc": "PC",
+      "device_mobile": "Mobile",
+      "device_tablet": "Tablet",
+      "historyBefore": "Before",
+      "historyAfter": "After"
     },
     "settings": {
       "title": "Company Settings",

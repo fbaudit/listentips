@@ -459,7 +459,13 @@
       "contentLabel": "内容",
       "statusChanged": "状態変更",
       "attachmentAdded": "添付ファイル追加",
-      "attachmentRemoved": "添付ファイル削除"
+      "attachmentRemoved": "添付ファイル削除",
+      "deviceType": "受付デバイス",
+      "device_pc": "PC",
+      "device_mobile": "モバイル",
+      "device_tablet": "タブレット",
+      "historyBefore": "変更前",
+      "historyAfter": "変更後"
     },
     "settings": {
       "title": "会社設定",

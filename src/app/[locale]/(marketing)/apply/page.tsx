@@ -105,6 +105,7 @@ export default function ApplyPage() {
   const [previewView, setPreviewView] = useState<"main" | "submit">("main");
   const [allContentBlocks, setAllContentBlocks] = useState<DefaultContentBlock[]>([]);
   const [selectedBlockIds, setSelectedBlockIds] = useState<Set<string>>(new Set());
+  const [defaultsApplied, setDefaultsApplied] = useState(false);
 
   const form = useForm<ApplicationInput>({
     resolver: zodResolver(applicationSchema),
@@ -587,14 +588,54 @@ export default function ApplyPage() {
           {/* Step 1: Channel Settings */}
           {currentStep === 1 && (
             <div className="space-y-6">
-              <CardHeader className="p-0">
-                <CardTitle>채널 설정</CardTitle>
-                <CardDescription>
-                  제보 채널의 기본 설정을 구성합니다.{" "}
-                  <span className="text-red-500">
-                    추후 제보채널 이름, 안내 메시지, 제보내용 작성 안내문구, 채널 메인 안내 블록, AI 기능, 제보유형, 기본제보 상태 모두 수정 가능합니다.
-                  </span>
-                </CardDescription>
+              <CardHeader className="p-0 space-y-3">
+                <div>
+                  <CardTitle>채널 설정</CardTitle>
+                  <CardDescription>
+                    제보 채널의 기본 설정을 구성합니다.{" "}
+                    <span className="text-red-500">
+                      추후 제보채널 이름, 안내 메시지, 제보내용 작성 안내문구, 채널 메인 안내 블록, AI 기능, 제보유형, 기본제보 상태 모두 수정 가능합니다.
+                    </span>
+                  </CardDescription>
+                </div>
+                <button
+                  type="button"
+                  className={cn(
+                    "self-center flex items-center justify-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors cursor-pointer",
+                    defaultsApplied
+                      ? "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                      : "bg-black text-white hover:bg-gray-800"
+                  )}
+                  onClick={() => {
+                    if (defaultsApplied) {
+                      // 초기화
+                      setValue("welcomeMessage", "");
+                      setValue("reportGuideMessage", "");
+                      setValue("useAiValidation", false);
+                      setValue("useChatbot", false);
+                      setValue("reportTypes", []);
+                      setDefaultsApplied(false);
+                    } else {
+                      // 기본값 설정
+                      setValue("welcomeMessage", "당신의 용기는 기록되지 않고, 사실만 남습니다");
+                      const guideMessages = [
+                        "단순 민원성 제보나 근거 없이 타인을 비방하거나 음해하는 내용의 제보는 처리되지 않을 수도 있습니다.",
+                        "사실에 근거해 육하원칙에 따라 구체적으로 작성해주시기 바랍니다.",
+                        "피제보자의 실명을 기재해주시면 보다 정확한 파악이 가능합니다.",
+                        "익명 제보 시 답변은 처리확인에서 수시 확인해주시기 바랍니다.",
+                        "명백한 사안 시 제보처리 진행과정을 이메일 또는 문자로 안내 받을 수 있습니다.",
+                      ].join("\n");
+                      setValue("reportGuideMessage", guideMessages);
+                      setValue("useAiValidation", true);
+                      setValue("useChatbot", true);
+                      setValue("reportTypes", defaultReportTypes.map((rt) => rt.type_name));
+                      setDefaultsApplied(true);
+                    }
+                  }}
+                >
+                  {defaultsApplied ? <X className="w-4 h-4" /> : <Check className="w-4 h-4" />}
+                  {defaultsApplied ? "기본값 초기화" : "기본값으로 시작하기"}
+                </button>
               </CardHeader>
 
               <div className="space-y-2">
@@ -925,7 +966,10 @@ export default function ApplyPage() {
                   <div className="space-y-2 text-sm">
                     <div><span className="text-muted-foreground">채널 이름:</span> {watch("channelName") || "-"}</div>
                     <div><span className="text-muted-foreground">안내 메시지:</span> {watch("welcomeMessage") || "-"}</div>
-                    <div><span className="text-muted-foreground">제보내용 안내문구:</span> {watch("reportGuideMessage") || "-"}</div>
+                    <div>
+                      <span className="text-muted-foreground">제보내용 안내문구:</span>
+                      <p className="whitespace-pre-wrap mt-1">{watch("reportGuideMessage") || "-"}</p>
+                    </div>
                     <div>
                       <span className="text-muted-foreground">채널 메인 안내 블록:</span>
                       {selectedBlockIds.size > 0 ? (

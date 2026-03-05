@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -629,17 +630,18 @@ export default function ReportDetailPage() {
           <div>
             <h3 className="font-semibold mb-2">{t("content")}</h3>
             {isEditing ? (
-              <Textarea
-                value={editContent}
-                onChange={(e) => setEditContent(e.target.value)}
+              <RichTextEditor
+                content={editContent}
+                onChange={(html) => setEditContent(html)}
                 placeholder="내용을 입력하세요"
-                rows={10}
-                className="min-h-[240px]"
+                minHeight="240px"
+                maxHeight="480px"
               />
             ) : (
-              <div className="whitespace-pre-wrap break-words text-sm bg-muted/50 rounded-lg p-4">
-                {report.content}
-              </div>
+              <div
+                className="prose prose-sm max-w-none break-words text-sm bg-muted/50 rounded-lg p-4 [&_p]:my-1 [&_p:empty]:min-h-[1em] [&_p:has(br:only-child)]:min-h-[1em]"
+                dangerouslySetInnerHTML={{ __html: report.content }}
+              />
             )}
           </div>
 

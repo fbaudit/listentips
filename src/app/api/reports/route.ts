@@ -210,6 +210,12 @@ export async function POST(request: NextRequest) {
     // Get locale from header
     const locale = request.headers.get("accept-language")?.split(",")[0]?.split("-")[0] || "ko";
 
+    // Detect device type from User-Agent
+    const userAgent = request.headers.get("user-agent") || "";
+    const isMobile = /Mobile|Android|iPhone|iPad|iPod|webOS|BlackBerry|Opera Mini|IEMobile/i.test(userAgent);
+    const isTablet = /iPad|Android(?!.*Mobile)|Tablet/i.test(userAgent);
+    const deviceType = isTablet ? "tablet" : isMobile ? "mobile" : "pc";
+
     // Encrypt title and content if company has encryption key
     let encTitle = title;
     let encContent = content;
@@ -238,6 +244,7 @@ export async function POST(request: NextRequest) {
         })(),
         reporter_ip_hash: ipHash,
         reporter_locale: locale,
+        device_type: deviceType,
       })
       .select("id, report_number")
       .single();
