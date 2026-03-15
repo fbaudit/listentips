@@ -6,6 +6,8 @@ import { verifyCode } from "@/lib/utils/verification-code";
 import type { UserRole, CompanyRole } from "@/types/database";
 
 export const authOptions: NextAuthConfig = {
+  secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET,
+  trustHost: true,
   providers: [
     Credentials({
       name: "credentials",
