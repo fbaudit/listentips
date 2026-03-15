@@ -177,7 +177,19 @@
     "analysisSaved": "分析结果已保存",
     "analysisSaveError": "分析结果保存失败",
     "analysisSavedLabel": "已保存",
-    "analysisDeleted": "分析结果已删除"
+    "analysisDeleted": "分析结果已删除",
+    "editPrompt": "编辑提示词",
+    "editPromptTitle": "编辑AI提示词",
+    "editPromptDesc": "您可以自定义用于AI分析的提示词。修改后的提示词将应用于后续的AI生成。",
+    "editPromptPlaceholders": "可用变量: '{title}', '{content}', '{who_field}', '{what_field}', '{when_field}', '{where_field}', '{why_field}', '{how_field}', '{report_number}', '{comment}'",
+    "editPromptPlaceholderText": "输入自定义提示词。留空将使用默认提示词。",
+    "customPromptActive": "自定义提示词已激活",
+    "promptSaved": "提示词已保存",
+    "promptSaveError": "提示词保存失败",
+    "promptReset": "已重置为默认提示词",
+    "resetToDefault": "重置为默认",
+    "savePrompt": "保存提示词",
+    "autoReplyPrompt": "自动回复"
   },
   "landing": {
     "hero": {
@@ -420,6 +432,11 @@
       "commentPlaceholder": "请输入评论...",
       "internalNote": "内部备注（对举报人不可见）",
       "send": "发送",
+      "autoReply": "AI回复",
+      "autoReplyTooltip": "AI根据举报人的最新评论生成回复",
+      "autoReplyGenerated": "AI回复已生成，请确认后发送。",
+      "autoReplyError": "AI回复生成失败",
+      "noReporterComment": "未找到举报人评论",
       "changeStatus": "更改状态",
       "selectStatus": "选择状态",
       "info": "信息",

@@ -177,7 +177,19 @@
     "analysisSaved": "분석 결과가 저장되었습니다",
     "analysisSaveError": "분석 결과 저장에 실패했습니다",
     "analysisSavedLabel": "저장됨",
-    "analysisDeleted": "분석 결과가 삭제되었습니다"
+    "analysisDeleted": "분석 결과가 삭제되었습니다",
+    "editPrompt": "프롬프트 수정",
+    "editPromptTitle": "AI 프롬프트 수정",
+    "editPromptDesc": "AI 분석에 사용되는 프롬프트를 직접 수정할 수 있습니다. 수정된 프롬프트는 이후 AI 생성 시 적용됩니다.",
+    "editPromptPlaceholders": "사용 가능한 변수: '{title}', '{content}', '{who_field}', '{what_field}', '{when_field}', '{where_field}', '{why_field}', '{how_field}', '{report_number}', '{comment}'",
+    "editPromptPlaceholderText": "커스텀 프롬프트를 입력하세요. 비워두면 기본 프롬프트가 사용됩니다.",
+    "customPromptActive": "커스텀 프롬프트가 적용 중입니다",
+    "promptSaved": "프롬프트가 저장되었습니다",
+    "promptSaveError": "프롬프트 저장에 실패했습니다",
+    "promptReset": "기본 프롬프트로 초기화되었습니다",
+    "resetToDefault": "기본값으로 초기화",
+    "savePrompt": "프롬프트 저장",
+    "autoReplyPrompt": "자동 답변"
   },
   "landing": {
     "hero": {
@@ -425,6 +437,11 @@
       "commentPlaceholder": "댓글을 입력하세요...",
       "internalNote": "내부 메모 (제보자에게 비공개)",
       "send": "전송",
+      "autoReply": "AI 답변",
+      "autoReplyTooltip": "제보자의 마지막 댓글을 기반으로 AI가 답변을 생성합니다",
+      "autoReplyGenerated": "AI 답변이 생성되었습니다. 내용을 확인 후 전송하세요.",
+      "autoReplyError": "AI 답변 생성에 실패했습니다",
+      "noReporterComment": "제보자의 댓글이 없습니다",
       "changeStatus": "상태 변경",
       "selectStatus": "상태 선택",
       "info": "정보",

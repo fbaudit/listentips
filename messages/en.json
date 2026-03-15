@@ -177,7 +177,19 @@
     "analysisSaved": "Analysis result has been saved",
     "analysisSaveError": "Failed to save analysis result",
     "analysisSavedLabel": "Saved",
-    "analysisDeleted": "Analysis result has been deleted"
+    "analysisDeleted": "Analysis result has been deleted",
+    "editPrompt": "Edit Prompt",
+    "editPromptTitle": "Edit AI Prompt",
+    "editPromptDesc": "You can customize the prompt used for AI analysis. Modified prompts will be applied to subsequent AI generations.",
+    "editPromptPlaceholders": "Available variables: '{title}', '{content}', '{who_field}', '{what_field}', '{when_field}', '{where_field}', '{why_field}', '{how_field}', '{report_number}', '{comment}'",
+    "editPromptPlaceholderText": "Enter custom prompt. Leave empty to use the default prompt.",
+    "customPromptActive": "Custom prompt is active",
+    "promptSaved": "Prompt has been saved",
+    "promptSaveError": "Failed to save prompt",
+    "promptReset": "Prompt has been reset to default",
+    "resetToDefault": "Reset to Default",
+    "savePrompt": "Save Prompt",
+    "autoReplyPrompt": "Auto Reply"
   },
   "landing": {
     "hero": {
@@ -425,6 +437,11 @@
       "commentPlaceholder": "Enter a comment...",
       "internalNote": "Internal note (hidden from reporter)",
       "send": "Send",
+      "autoReply": "AI Reply",
+      "autoReplyTooltip": "AI generates a reply based on the reporter's last comment",
+      "autoReplyGenerated": "AI reply generated. Please review before sending.",
+      "autoReplyError": "Failed to generate AI reply",
+      "noReporterComment": "No reporter comments found",
       "changeStatus": "Change Status",
       "selectStatus": "Select Status",
       "info": "Information",

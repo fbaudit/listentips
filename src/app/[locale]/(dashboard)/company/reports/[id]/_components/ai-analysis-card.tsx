@@ -8,10 +8,38 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Sparkles, Copy, RotateCw, AlertTriangle, ClipboardCheck, Save, ShieldCheck, Regex, Plus, X, Trash2 } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Loader2, Sparkles, Copy, RotateCw, AlertTriangle, ClipboardCheck, Save, ShieldCheck, Regex, Plus, X, Trash2, Settings } from "lucide-react";
 import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
+import { sanitizeHtml } from "@/lib/utils/sanitize";
 import type { DeidentifiedData } from "@/types/database";
+import {
+  DEIDENTIFICATION_PROMPT,
+  REPORT_SUMMARY_PROMPT,
+  VIOLATION_ANALYSIS_PROMPT,
+  INVESTIGATION_PLAN_PROMPT,
+  QUESTIONNAIRE_PROMPT,
+  INVESTIGATION_REPORT_PROMPT,
+  COMMENT_AUTO_REPLY_PROMPT,
+} from "@/lib/ai/prompts";
+
+const DEFAULT_PROMPTS: Record<string, string> = {
+  deidentification: DEIDENTIFICATION_PROMPT,
+  summary: REPORT_SUMMARY_PROMPT,
+  violation: VIOLATION_ANALYSIS_PROMPT,
+  investigation_plan: INVESTIGATION_PLAN_PROMPT,
+  questionnaire: QUESTIONNAIRE_PROMPT,
+  investigation_report: INVESTIGATION_REPORT_PROMPT,
+  auto_reply: COMMENT_AUTO_REPLY_PROMPT,
+};
 
 type AnalysisType = "deidentification" | "summary" | "violation" | "investigation_plan" | "questionnaire" | "investigation_report";
 
@@ -49,6 +77,33 @@ export function AIAnalysisCard({ reportId }: AIAnalysisCardProps) {
   const [manualCategory, setManualCategory] = useState("인물");
   const [savedAnalyses, setSavedAnalyses] = useState<Partial<Record<AnalysisType, boolean>>>({});
   const [savingType, setSavingType] = useState<AnalysisType | null>(null);
+
+  // Prompt editor state
+  const [promptDialogOpen, setPromptDialogOpen] = useState(false);
+  const [editingPromptType, setEditingPromptType] = useState<AnalysisType | "auto_reply" | null>(null);
+  const [editingPromptText, setEditingPromptText] = useState("");
+  const [customPrompts, setCustomPrompts] = useState<Record<string, string>>({});
+  const [savingPrompt, setSavingPrompt] = useState(false);
+
+  // Load custom prompts on mount
+  useEffect(() => {
+    const loadPrompts = async () => {
+      try {
+        const res = await fetch("/api/company/ai-prompts");
+        if (res.ok) {
+          const data = await res.json();
+          const map: Record<string, string> = {};
+          for (const p of data.prompts || []) {
+            map[p.prompt_type] = p.prompt_template;
+          }
+          setCustomPrompts(map);
+        }
+      } catch {
+        // Silent fail
+      }
+    };
+    loadPrompts();
+  }, []);
 
   // Load saved de-identified data on mount
   useEffect(() => {
@@ -333,6 +388,73 @@ export function AIAnalysisCard({ reportId }: AIAnalysisCardProps) {
     toast.success(t("copiedToClipboard"));
   };
 
+  const PROMPT_TYPE_LABELS: Record<string, string> = {
+    deidentification: t("deidentification"),
+    summary: t("summary"),
+    violation: t("violation"),
+    investigation_plan: t("investigationPlan"),
+    questionnaire: t("questionnaire"),
+    investigation_report: t("investigationReport"),
+    auto_reply: t("autoReplyPrompt"),
+  };
+
+  const openPromptEditor = (type: AnalysisType | "auto_reply") => {
+    setEditingPromptType(type);
+    setEditingPromptText(customPrompts[type] || DEFAULT_PROMPTS[type] || "");
+    setPromptDialogOpen(true);
+  };
+
+  const saveCustomPrompt = async () => {
+    if (!editingPromptType || !editingPromptText.trim()) return;
+    setSavingPrompt(true);
+    try {
+      const res = await fetch("/api/company/ai-prompts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          promptType: editingPromptType,
+          promptTemplate: editingPromptText,
+        }),
+      });
+      if (res.ok) {
+        setCustomPrompts((prev) => ({ ...prev, [editingPromptType!]: editingPromptText }));
+        toast.success(t("promptSaved"));
+        setPromptDialogOpen(false);
+      } else {
+        const data = await res.json();
+        toast.error(data.error || t("promptSaveError"));
+      }
+    } catch {
+      toast.error(t("networkError"));
+    } finally {
+      setSavingPrompt(false);
+    }
+  };
+
+  const resetPromptToDefault = async () => {
+    if (!editingPromptType) return;
+    setSavingPrompt(true);
+    try {
+      const res = await fetch(`/api/company/ai-prompts?promptType=${editingPromptType}`, {
+        method: "DELETE",
+      });
+      if (res.ok) {
+        setCustomPrompts((prev) => {
+          const next = { ...prev };
+          delete next[editingPromptType!];
+          return next;
+        });
+        setEditingPromptText(DEFAULT_PROMPTS[editingPromptType!] || "");
+        toast.success(t("promptReset"));
+        setPromptDialogOpen(false);
+      }
+    } catch {
+      toast.error(t("networkError"));
+    } finally {
+      setSavingPrompt(false);
+    }
+  };
+
   // ── Renderers ──
 
   const renderLoading = (message?: string) => (
@@ -352,10 +474,18 @@ export function AIAnalysisCard({ reportId }: AIAnalysisCardProps) {
   const renderGenerateButton = (type: AnalysisType, label: string) => (
     <div className="flex flex-col items-center justify-center py-10 gap-3">
       <p className="text-sm text-muted-foreground">{t("generatePrompt")}</p>
-      <Button onClick={() => generate(type)}>
-        <Sparkles className="h-4 w-4 mr-2" />
-        {label}
-      </Button>
+      <div className="flex gap-2">
+        <Button onClick={() => generate(type)}>
+          <Sparkles className="h-4 w-4 mr-2" />
+          {label}
+        </Button>
+        <Button size="icon" variant="ghost" onClick={() => openPromptEditor(type)} title={t("editPrompt")}>
+          <Settings className="h-4 w-4" />
+        </Button>
+      </div>
+      {customPrompts[type] && (
+        <p className="text-xs text-blue-600 dark:text-blue-400">{t("customPromptActive")}</p>
+      )}
     </div>
   );
 
@@ -393,6 +523,15 @@ export function AIAnalysisCard({ reportId }: AIAnalysisCardProps) {
         >
           <Trash2 className="h-3.5 w-3.5 mr-1" />
           {tc("delete")}
+        </Button>
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={() => openPromptEditor(type)}
+          title={t("editPrompt")}
+        >
+          <Settings className="h-3.5 w-3.5 mr-1" />
+          {t("editPrompt")}
         </Button>
       </div>
     );
@@ -519,14 +658,15 @@ export function AIAnalysisCard({ reportId }: AIAnalysisCardProps) {
           {deidentifiedTitle && (
             <div className="bg-muted rounded-lg p-3">
               <p className="font-medium text-sm mb-1">{t("deidentifiedTitle")}</p>
-              <p className="text-sm">{deidentifiedTitle}</p>
+              <div className="text-sm" dangerouslySetInnerHTML={{ __html: sanitizeHtml(deidentifiedTitle) }} />
             </div>
           )}
 
           {/* De-identified content */}
-          <div className="bg-muted rounded-lg p-4 text-sm whitespace-pre-wrap leading-relaxed">
-            {deidentifiedContent}
-          </div>
+          <div
+            className="bg-muted rounded-lg p-4 text-sm whitespace-pre-wrap leading-relaxed prose prose-sm dark:prose-invert max-w-none"
+            dangerouslySetInnerHTML={{ __html: sanitizeHtml(deidentifiedContent) }}
+          />
 
           {/* De-identified 5W1H fields */}
           {result.deidentifiedFields && (
@@ -539,7 +679,7 @@ export function AIAnalysisCard({ reportId }: AIAnalysisCardProps) {
                       <span className="font-medium text-muted-foreground">
                         {fieldLabels[key] || key}:
                       </span>{" "}
-                      {value}
+                      <span dangerouslySetInnerHTML={{ __html: sanitizeHtml(String(value)) }} />
                     </div>
                   ) : null
                 )}
@@ -998,6 +1138,62 @@ export function AIAnalysisCard({ reportId }: AIAnalysisCardProps) {
           </TabsContent>
         </Tabs>
       </CardContent>
+
+      {/* Prompt Editor Dialog */}
+      <Dialog open={promptDialogOpen} onOpenChange={setPromptDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Settings className="h-5 w-5" />
+              {t("editPromptTitle")} - {editingPromptType ? PROMPT_TYPE_LABELS[editingPromptType] : ""}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <p className="text-sm text-muted-foreground mb-2">
+                {t("editPromptDesc")}
+              </p>
+              <p className="text-xs text-muted-foreground mb-3">
+                {t("editPromptPlaceholders")}
+              </p>
+            </div>
+            <Textarea
+              value={editingPromptText}
+              onChange={(e) => setEditingPromptText(e.target.value)}
+              rows={16}
+              className="font-mono text-xs"
+              placeholder={t("editPromptPlaceholderText")}
+            />
+            {customPrompts[editingPromptType || ""] && (
+              <p className="text-xs text-blue-600 dark:text-blue-400">
+                {t("customPromptActive")}
+              </p>
+            )}
+          </div>
+          <DialogFooter className="flex gap-2 sm:gap-2">
+            <Button
+              variant="outline"
+              onClick={resetPromptToDefault}
+              disabled={savingPrompt || !customPrompts[editingPromptType || ""]}
+              className="text-destructive hover:text-destructive"
+            >
+              <RotateCw className="h-3.5 w-3.5 mr-1" />
+              {t("resetToDefault")}
+            </Button>
+            <Button
+              onClick={saveCustomPrompt}
+              disabled={savingPrompt || !editingPromptText.trim()}
+            >
+              {savingPrompt ? (
+                <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
+              ) : (
+                <Save className="h-3.5 w-3.5 mr-1" />
+              )}
+              {t("savePrompt")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }

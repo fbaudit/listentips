@@ -27,7 +27,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { ArrowLeft, Send, Loader2, Download, FileText, Lock, Key, Clock, Trash2, History, Pencil, X, Check, Paperclip, Monitor, Smartphone, Tablet, Eye } from "lucide-react";
+import { ArrowLeft, Send, Loader2, Download, FileText, Lock, Key, Clock, Trash2, History, Pencil, X, Check, Paperclip, Monitor, Smartphone, Tablet, Eye, Sparkles } from "lucide-react";
 import { ALLOWED_FILE_TYPES, MAX_FILE_SIZE } from "@/lib/validators/report";
 import { Link } from "@/i18n/routing";
 import { useRouter } from "next/navigation";
@@ -121,6 +121,9 @@ export default function CompanyReportDetailPage() {
   const [commentFiles, setCommentFiles] = useState<File[]>([]);
   const commentFileRef = useRef<HTMLInputElement>(null);
   const [downloadingCommentAttId, setDownloadingCommentAttId] = useState<string | null>(null);
+
+  // AI auto-reply state
+  const [generatingReply, setGeneratingReply] = useState(false);
 
   // Edit history detail dialog
   const [historyDetailOpen, setHistoryDetailOpen] = useState(false);
@@ -292,7 +295,7 @@ export default function CompanyReportDetailPage() {
           }
         }
 
-        setComments((prev) => [...prev, { ...data.comment, attachments }]);
+        setComments((prev) => [...prev, { ...data.comment, author_type: "company_admin", attachments }]);
         setNewComment("");
         setCommentFiles([]);
         setIsInternal(false);
@@ -379,6 +382,39 @@ export default function CompanyReportDetailPage() {
       }
     } catch {
       toast.error(t("commentDeleteError"));
+    }
+  };
+
+  const handleAutoReply = async () => {
+    // Find the last reporter comment
+    const reporterComments = comments.filter((c) => c.author_type === "reporter");
+    if (reporterComments.length === 0) {
+      toast.error(t("noReporterComment"));
+      return;
+    }
+    const lastReporterComment = reporterComments[reporterComments.length - 1];
+
+    setGeneratingReply(true);
+    try {
+      const res = await fetch(`/api/reports/${reportId}/comments/auto-reply`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...getEncryptionHeaders(),
+        },
+        body: JSON.stringify({ comment: lastReporterComment.content }),
+      });
+      const data = await res.json();
+      if (res.ok && data.reply) {
+        setNewComment(data.reply);
+        toast.success(t("autoReplyGenerated"));
+      } else {
+        toast.error(data.error || t("autoReplyError"));
+      }
+    } catch {
+      toast.error(t("autoReplyError"));
+    } finally {
+      setGeneratingReply(false);
     }
   };
 
@@ -595,7 +631,7 @@ export default function CompanyReportDetailPage() {
                             </div>
                           </div>
                         ) : (
-                          <div className="flex items-start gap-1">
+                          <div className="flex items-start gap-1 max-w-[80%]">
                             {isMe && (
                               <div className="hidden group-hover:flex gap-0.5 mt-2 shrink-0">
                                 <button
@@ -615,7 +651,7 @@ export default function CompanyReportDetailPage() {
                                 </button>
                               </div>
                             )}
-                            <div className="max-w-[75%] space-y-1">
+                            <div className="min-w-0 space-y-1">
                               <div
                                 className={`p-3 rounded-2xl text-sm ${
                                   isMe
@@ -736,10 +772,22 @@ export default function CompanyReportDetailPage() {
                       {t("internalNote")}
                     </Label>
                   </div>
-                  <Button onClick={handleComment} disabled={sending || (!newComment.trim() && commentFiles.length === 0)} size="sm">
-                    {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4 mr-2" />}
-                    {t("send")}
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleAutoReply}
+                      disabled={generatingReply || comments.filter((c) => c.author_type === "reporter").length === 0}
+                      title={t("autoReplyTooltip")}
+                    >
+                      {generatingReply ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4 mr-2" />}
+                      {t("autoReply")}
+                    </Button>
+                    <Button onClick={handleComment} disabled={sending || (!newComment.trim() && commentFiles.length === 0)} size="sm">
+                      {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4 mr-2" />}
+                      {t("send")}
+                    </Button>
+                  </div>
                 </div>
               </div>
             </CardContent>

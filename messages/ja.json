@@ -177,7 +177,19 @@
     "analysisSaved": "分析結果が保存されました",
     "analysisSaveError": "分析結果の保存に失敗しました",
     "analysisSavedLabel": "保存済み",
-    "analysisDeleted": "分析結果が削除されました"
+    "analysisDeleted": "分析結果が削除されました",
+    "editPrompt": "プロンプト編集",
+    "editPromptTitle": "AIプロンプト編集",
+    "editPromptDesc": "AI分析に使用されるプロンプトをカスタマイズできます。変更されたプロンプトは以降のAI生成に適用されます。",
+    "editPromptPlaceholders": "使用可能な変数: '{title}', '{content}', '{who_field}', '{what_field}', '{when_field}', '{where_field}', '{why_field}', '{how_field}', '{report_number}', '{comment}'",
+    "editPromptPlaceholderText": "カスタムプロンプトを入力してください。空欄の場合はデフォルトプロンプトが使用されます。",
+    "customPromptActive": "カスタムプロンプトが適用中です",
+    "promptSaved": "プロンプトが保存されました",
+    "promptSaveError": "プロンプトの保存に失敗しました",
+    "promptReset": "デフォルトプロンプトに戻されました",
+    "resetToDefault": "デフォルトに戻す",
+    "savePrompt": "プロンプト保存",
+    "autoReplyPrompt": "自動返信"
   },
   "landing": {
     "hero": {
@@ -425,6 +437,11 @@
       "commentPlaceholder": "コメントを入力してください...",
       "internalNote": "内部メモ（通報者には非公開）",
       "send": "送信",
+      "autoReply": "AI返信",
+      "autoReplyTooltip": "通報者の最新コメントを基にAIが返信を生成します",
+      "autoReplyGenerated": "AI返信が生成されました。確認後に送信してください。",
+      "autoReplyError": "AI返信の生成に失敗しました",
+      "noReporterComment": "通報者のコメントがありません",
       "changeStatus": "状態変更",
       "selectStatus": "状態を選択",
       "info": "情報",

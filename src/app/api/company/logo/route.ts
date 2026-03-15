@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { auth } from "@/lib/auth/auth";
+import { removeBackground } from "@/lib/utils/remove-bg";
 
 export async function POST(request: NextRequest) {
   const session = await auth();
@@ -28,9 +29,40 @@ export async function POST(request: NextRequest) {
 
   const supabase = createAdminClient();
   const companyId = session.user.companyId;
-  const ext = file.name.split(".").pop() || "png";
   const timestamp = Date.now();
-  const filePath = `logos/${companyId}/logo_${timestamp}.${ext}`;
+
+  // Auto background removal for raster images (skip SVG)
+  let uploadBuffer: Buffer;
+  let uploadContentType: string;
+  let uploadExt: string;
+
+  if (file.type === "image/svg+xml") {
+    uploadBuffer = Buffer.from(await file.arrayBuffer());
+    uploadContentType = file.type;
+    uploadExt = "svg";
+  } else {
+    const originalBuffer = Buffer.from(await file.arrayBuffer());
+    try {
+      const processed = await removeBackground(originalBuffer);
+      if (processed) {
+        uploadBuffer = processed;
+        uploadContentType = "image/png";
+        uploadExt = "png";
+      } else {
+        // Already transparent or no clear background — upload as-is
+        uploadBuffer = originalBuffer;
+        uploadContentType = file.type;
+        uploadExt = file.name.split(".").pop() || "png";
+      }
+    } catch (err) {
+      console.error("Background removal error (uploading original):", err);
+      uploadBuffer = originalBuffer;
+      uploadContentType = file.type;
+      uploadExt = file.name.split(".").pop() || "png";
+    }
+  }
+
+  const filePath = `logos/${companyId}/logo_${timestamp}.${uploadExt}`;
 
   // Delete old logo files if exist
   const { data: oldFiles } = await supabase.storage
@@ -46,8 +78,8 @@ export async function POST(request: NextRequest) {
   // Upload new logo
   const { error: uploadError } = await supabase.storage
     .from("company-assets")
-    .upload(filePath, file, {
-      contentType: file.type,
+    .upload(filePath, uploadBuffer, {
+      contentType: uploadContentType,
     });
 
   if (uploadError) {

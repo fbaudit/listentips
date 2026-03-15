@@ -18,6 +18,11 @@ type AnalysisType = "deidentification" | "summary" | "violation" | "investigatio
 
 const VALID_TYPES: AnalysisType[] = ["deidentification", "summary", "violation", "investigation_plan", "questionnaire", "investigation_report"];
 
+// 회사 문서를 참조해야 하는 분석 유형
+const DOCUMENT_AWARE_TYPES: AnalysisType[] = ["violation", "investigation_plan", "questionnaire", "investigation_report"];
+
+const MAX_DOC_LENGTH = 3000;
+
 const PROMPT_MAP: Record<AnalysisType, string> = {
   deidentification: DEIDENTIFICATION_PROMPT,
   summary: REPORT_SUMMARY_PROMPT,
@@ -145,8 +150,21 @@ export async function POST(
     // Get AI client for this company
     const ai = await getCompanyAIClient(report.company_id);
 
+    // Check for custom prompt
+    let promptTemplate = PROMPT_MAP[analysisType];
+    const { data: customPrompt } = await supabase
+      .from("company_ai_prompts")
+      .select("prompt_template")
+      .eq("company_id", report.company_id)
+      .eq("prompt_type", analysisType)
+      .single();
+
+    if (customPrompt?.prompt_template) {
+      promptTemplate = customPrompt.prompt_template;
+    }
+
     // Build prompt with placeholders replaced
-    const prompt = PROMPT_MAP[analysisType]
+    let prompt = promptTemplate
       .replace("{report_number}", report.report_number || "")
       .replace("{title}", promptTitle)
       .replace("{content}", promptContent)
@@ -156,6 +174,29 @@ export async function POST(
       .replace("{where_field}", promptFields.where_field)
       .replace("{why_field}", promptFields.why_field)
       .replace("{how_field}", promptFields.how_field);
+
+    // 회사 문서 참조가 필요한 분석 유형이면, 업로드된 문서 내용을 프롬프트에 추가
+    if (DOCUMENT_AWARE_TYPES.includes(analysisType)) {
+      const { data: documents } = await supabase
+        .from("company_documents")
+        .select("file_name, content_text")
+        .eq("company_id", report.company_id)
+        .limit(10);
+
+      if (documents && documents.length > 0) {
+        const docTexts = documents
+          .filter((d) => d.content_text)
+          .map((d) => {
+            const text = (d.content_text || "").slice(0, MAX_DOC_LENGTH);
+            return `[${d.file_name}]\n${text}`;
+          })
+          .join("\n\n---\n\n");
+
+        if (docTexts) {
+          prompt += `\n\n───── 회사 내부 규정/정책 문서 (우선 참고) ─────\n아래는 이 회사의 내부 규정, 정책, 가이드 문서입니다. 분석 시 이 문서들을 우선적으로 참고하여 회사 내규 위반 여부도 함께 판단해주세요. 문서에서 관련 내용을 찾을 수 없는 경우에는 일반적인 법률/규정 지식을 기반으로 분석해주세요.\n\n${docTexts}`;
+        }
+      }
+    }
 
     const response = await ai.generateContent(prompt);
 

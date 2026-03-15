@@ -11,6 +11,30 @@ import {
 
 const MAX_DOC_LENGTH = 3000;
 
+/** Gemini에서 지원하는 텍스트 MIME 타입으로 정규화 */
+function normalizeGeminiMimeType(mimeType: string | null): string {
+  if (!mimeType || mimeType === "application/octet-stream") return "text/plain";
+
+  const supported = [
+    "text/plain", "text/html", "text/css", "text/csv",
+    "text/javascript", "text/markdown", "text/xml",
+    "application/json", "application/pdf",
+    "application/xml", "application/rtf",
+  ];
+
+  if (supported.includes(mimeType)) return mimeType;
+
+  // Map common unsupported types
+  if (mimeType.startsWith("text/")) return mimeType;
+  if (mimeType.includes("word") || mimeType.includes("document")) return "text/plain";
+  if (mimeType.includes("sheet") || mimeType.includes("excel") || mimeType.includes("csv")) return "text/csv";
+  if (mimeType.includes("json")) return "application/json";
+  if (mimeType.includes("xml")) return "application/xml";
+  if (mimeType.includes("pdf")) return "application/pdf";
+
+  return "text/plain";
+}
+
 export async function POST(request: NextRequest) {
   try {
     const { companyCode, message, history } = await request.json();
@@ -127,18 +151,21 @@ async function resolveGeminiFiles(
   for (const doc of documents) {
     try {
       // 유효한 파일 참조가 있고 만료되지 않았으면 그대로 사용
-      if (doc.gemini_file_uri && !isGeminiFileExpired(doc.gemini_uploaded_at)) {
+      const safeMimeType = normalizeGeminiMimeType(doc.mime_type);
+      const mimeTypeChanged = doc.mime_type !== safeMimeType;
+
+      // 유효한 파일 참조가 있고, 만료되지 않았고, mimeType이 변경되지 않았으면 그대로 사용
+      if (doc.gemini_file_uri && !isGeminiFileExpired(doc.gemini_uploaded_at) && !mimeTypeChanged) {
         fileRefs.push({
           uri: doc.gemini_file_uri,
-          mimeType: doc.mime_type || "text/plain",
+          mimeType: safeMimeType,
         });
         continue;
       }
 
       // 만료되었거나 아직 업로드되지 않은 경우 → content_text로 재업로드
       if (doc.content_text) {
-        const mimeType = doc.mime_type || "text/plain";
-        const result = await uploadToGemini(geminiKey, doc.file_name, doc.content_text, mimeType);
+        const result = await uploadToGemini(geminiKey, doc.file_name, doc.content_text, safeMimeType);
 
         await supabase
           .from("company_documents")
@@ -146,10 +173,11 @@ async function resolveGeminiFiles(
             gemini_file_uri: result.uri,
             gemini_file_name: result.name,
             gemini_uploaded_at: new Date().toISOString(),
+            ...(mimeTypeChanged ? { mime_type: safeMimeType } : {}),
           })
           .eq("id", doc.id);
 
-        fileRefs.push({ uri: result.uri, mimeType });
+        fileRefs.push({ uri: result.uri, mimeType: safeMimeType });
       }
     } catch (err) {
       console.warn(`Gemini file resolve failed for ${doc.file_name}:`, err);
