@@ -73,9 +73,15 @@ export async function POST(request: NextRequest) {
     // Increment view count (best-effort)
     const { error: rpcError } = await supabase.rpc("increment_view_count", { report_id: report.id });
     if (rpcError) {
+      // Fallback: fetch current count and increment
+      const { data: currentReport } = await supabase
+        .from("reports")
+        .select("view_count")
+        .eq("id", report.id)
+        .single();
       await supabase
         .from("reports")
-        .update({ view_count: 1 })
+        .update({ view_count: (currentReport?.view_count || 0) + 1 })
         .eq("id", report.id);
     }
 

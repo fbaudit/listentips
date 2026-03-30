@@ -8,9 +8,18 @@ export const {
   ...authOptions,
   basePath: "/api/auth/admin",
   cookies: {
-    sessionToken: { name: "authjs.admin-session-token" },
-    callbackUrl: { name: "authjs.admin-callback-url" },
-    csrfToken: { name: "authjs.admin-csrf-token" },
+    sessionToken: {
+      name: "authjs.admin-session-token",
+      options: { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production" },
+    },
+    callbackUrl: {
+      name: "authjs.admin-callback-url",
+      options: { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production" },
+    },
+    csrfToken: {
+      name: "authjs.admin-csrf-token",
+      options: { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production" },
+    },
   },
   pages: {
     signIn: "/admin/login",

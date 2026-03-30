@@ -5,8 +5,17 @@ import { verifyPassword } from "@/lib/utils/password";
 import { verifyCode } from "@/lib/utils/verification-code";
 import type { UserRole, CompanyRole } from "@/types/database";
 
+// AUTH_SECRET is required. In development, fall back to NEXTAUTH_SECRET or a dev-only default.
+const authSecret = process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET || (
+  process.env.NODE_ENV === "development" ? "dev-secret-do-not-use-in-production" : undefined
+);
+
+if (!authSecret && process.env.NODE_ENV === "production") {
+  throw new Error("AUTH_SECRET environment variable is required in production");
+}
+
 export const authOptions: NextAuthConfig = {
-  secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET,
+  secret: authSecret,
   trustHost: true,
   providers: [
     Credentials({
@@ -87,11 +96,11 @@ export const authOptions: NextAuthConfig = {
           }
         }
 
-        // Record successful login
-        const ip = "server"; // IP is recorded in the login API
+        // Record successful login (IP hash is not available in authorize callback;
+        // the detailed IP logging is done in /api/auth/login)
         await supabase.from("login_attempts").insert({
           username: user.username,
-          ip_hash: ip,
+          ip_hash: "authorize",
           success: true,
         });
 
@@ -121,10 +130,50 @@ export const authOptions: NextAuthConfig = {
         token.companyId = user.companyId;
         token.companyName = user.companyName;
         token.companyRole = user.companyRole;
+        token.issuedAt = Date.now();
       }
+
+      // Periodically verify user is still active and password hasn't changed
+      // Check every 5 minutes to avoid DB query on every request
+      const CHECK_INTERVAL_MS = 5 * 60 * 1000;
+      if (token.id && (!token.lastChecked || Date.now() - (token.lastChecked as number) > CHECK_INTERVAL_MS)) {
+        try {
+          const supabase = createAdminClient();
+          const { data: currentUser, error: checkError } = await supabase
+            .from("users")
+            .select("is_active, password_changed_at")
+            .eq("id", token.id as string)
+            .single();
+
+          // If DB query fails, skip check (don't invalidate on transient errors)
+          if (!checkError && currentUser) {
+            if (!currentUser.is_active) {
+              return { ...token, id: null };
+            }
+
+            // If password was changed after token was issued, invalidate
+            if (currentUser.password_changed_at && token.issuedAt) {
+              const changedAt = new Date(currentUser.password_changed_at).getTime();
+              if (changedAt > (token.issuedAt as number)) {
+                return { ...token, id: null };
+              }
+            }
+          }
+
+          token.lastChecked = Date.now();
+        } catch {
+          // DB error — skip check, don't break session
+        }
+      }
+
       return token;
     },
     async session({ session, token }) {
+      // If token was invalidated (id set to null), clear user data
+      if (!token.id) {
+        session.user = { id: "", email: "", name: "", image: "" } as typeof session.user;
+        return session;
+      }
       if (session.user) {
         session.user.id = token.id as string;
         session.user.role = token.role as UserRole;

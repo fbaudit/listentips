@@ -175,9 +175,9 @@ export async function DELETE(
       // Delete verification codes
       await supabase.from("verification_codes").delete().in("user_id", userIds);
 
-      // Delete login attempts
-      for (const username of usernames) {
-        await supabase.from("login_attempts").delete().eq("username", username);
+      // Delete login attempts (batch)
+      if (usernames.length > 0) {
+        await supabase.from("login_attempts").delete().in("username", usernames);
       }
     }
 
@@ -216,7 +216,7 @@ export async function DELETE(
     if (deleteError) {
       console.error("Company delete error:", deleteError);
       return NextResponse.json(
-        { error: `기업 삭제 실패: ${deleteError.message}` },
+        { error: "기업 삭제에 실패했습니다" },
         { status: 500 }
       );
     }
@@ -226,7 +226,7 @@ export async function DELETE(
     const errMsg = error instanceof Error ? error.message : String(error);
     console.error("Company delete error:", errMsg);
     return NextResponse.json(
-      { error: `삭제 중 오류가 발생했습니다: ${errMsg}` },
+      { error: "삭제 중 오류가 발생했습니다" },
       { status: 500 }
     );
   }

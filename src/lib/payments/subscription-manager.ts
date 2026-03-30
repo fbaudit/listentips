@@ -106,19 +106,23 @@ export async function checkExpiredSubscriptions() {
 
   const processedCompanyIds = new Set<string>();
 
-  for (const sub of allExpired) {
+  if (allExpired.length > 0) {
+    // Batch update subscriptions to expired
+    const subIds = allExpired.map((s) => s.id);
     await supabase
       .from("subscriptions")
       .update({ status: "expired" })
-      .eq("id", sub.id);
+      .in("id", subIds);
 
+    // Batch update companies to inactive
+    const companyIds = [...new Set(allExpired.map((s) => s.company_id))];
     await supabase
       .from("companies")
       .update({ is_active: false })
-      .eq("id", sub.company_id);
+      .in("id", companyIds);
 
-    processedCompanyIds.add(sub.company_id);
-    totalProcessed++;
+    companyIds.forEach((id) => processedCompanyIds.add(id));
+    totalProcessed += allExpired.length;
   }
 
   // 3. Check companies whose service_end has passed (regardless of subscription)

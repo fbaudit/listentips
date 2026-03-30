@@ -1,5 +1,13 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 
+const SMS_TIMEOUT_MS = 15_000;
+
+function fetchWithTimeout(url: string, options: RequestInit, timeoutMs = SMS_TIMEOUT_MS): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  return fetch(url, { ...options, signal: controller.signal }).finally(() => clearTimeout(timer));
+}
+
 interface SmsOptions {
   to: string;
   message: string;
@@ -38,7 +46,7 @@ export async function sendSMS({ to, message }: SmsOptions): Promise<boolean> {
         formData.append("receiver", to);
         formData.append("msg", message);
 
-        const response = await fetch("https://apis.aligo.in/send/", {
+        const response = await fetchWithTimeout("https://apis.aligo.in/send/", {
           method: "POST",
           headers: { "Content-Type": "application/x-www-form-urlencoded" },
           body: formData.toString(),
@@ -49,7 +57,7 @@ export async function sendSMS({ to, message }: SmsOptions): Promise<boolean> {
       }
 
       case "naver_cloud": {
-        const response = await fetch(
+        const response = await fetchWithTimeout(
           "https://sens.apigw.ntruss.com/sms/v2/services/ncp:sms:kr/messages",
           {
             method: "POST",
@@ -75,7 +83,7 @@ export async function sendSMS({ to, message }: SmsOptions): Promise<boolean> {
         if (!smsId || !apiKey) return false;
 
         // Step 1: OAuth 토큰 발급
-        const tokenRes = await fetch("https://sms.gabia.com/oauth/token", {
+        const tokenRes = await fetchWithTimeout("https://sms.gabia.com/oauth/token", {
           method: "POST",
           headers: {
             "Content-Type": "application/x-www-form-urlencoded",
@@ -95,7 +103,7 @@ export async function sendSMS({ to, message }: SmsOptions): Promise<boolean> {
         smsForm.append("callback", settings.sender_number);
         smsForm.append("message", message);
 
-        const smsRes = await fetch("https://sms.gabia.com/api/send/sms", {
+        const smsRes = await fetchWithTimeout("https://sms.gabia.com/api/send/sms", {
           method: "POST",
           headers: {
             "Content-Type": "application/x-www-form-urlencoded",
@@ -118,7 +126,7 @@ export async function sendSMS({ to, message }: SmsOptions): Promise<boolean> {
         formData.append("To", to);
         formData.append("Body", message);
 
-        const response = await fetch(
+        const response = await fetchWithTimeout(
           `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`,
           {
             method: "POST",

@@ -1,9 +1,18 @@
+import crypto from "crypto";
+
 const TOSS_API_URL = "https://api.tosspayments.com/v1";
+const TOSS_TIMEOUT_MS = 30_000;
 
 function getAuthHeader() {
   const key = process.env.TOSS_SECRET_KEY!;
   const encoded = Buffer.from(`${key}:`).toString("base64");
   return `Basic ${encoded}`;
+}
+
+function fetchWithTimeout(url: string, options: RequestInit, timeoutMs = TOSS_TIMEOUT_MS): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  return fetch(url, { ...options, signal: controller.signal }).finally(() => clearTimeout(timer));
 }
 
 export interface TossPaymentConfirmRequest {
@@ -25,7 +34,7 @@ export interface TossPaymentResponse {
 export async function confirmTossPayment(
   params: TossPaymentConfirmRequest
 ): Promise<TossPaymentResponse> {
-  const response = await fetch(`${TOSS_API_URL}/payments/confirm`, {
+  const response = await fetchWithTimeout(`${TOSS_API_URL}/payments/confirm`, {
     method: "POST",
     headers: {
       Authorization: getAuthHeader(),
@@ -46,7 +55,7 @@ export async function cancelTossPayment(
   paymentKey: string,
   reason: string
 ): Promise<TossPaymentResponse> {
-  const response = await fetch(
+  const response = await fetchWithTimeout(
     `${TOSS_API_URL}/payments/${paymentKey}/cancel`,
     {
       method: "POST",
@@ -68,6 +77,6 @@ export async function cancelTossPayment(
 
 export function generateTossOrderId(companyId: string, planType: string): string {
   const timestamp = Date.now().toString(36);
-  const random = Math.random().toString(36).substring(2, 6);
+  const random = crypto.randomBytes(3).toString("hex");
   return `ORD-${companyId.substring(0, 8)}-${planType}-${timestamp}-${random}`.toUpperCase();
 }

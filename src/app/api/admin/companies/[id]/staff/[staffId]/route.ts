@@ -36,6 +36,7 @@ export async function PATCH(
   if (body.is_active !== undefined) updateData.is_active = body.is_active;
   if (body.password) {
     updateData.password_hash = await hashPassword(body.password);
+    updateData.password_changed_at = new Date().toISOString();
   }
 
   if (Object.keys(updateData).length === 0) {

@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
       if (selectError) {
         console.error("encryption-key generate: select error:", selectError.message);
         return NextResponse.json(
-          { error: `기업 정보 조회 실패: ${selectError.message}` },
+          { error: "기업 정보 조회에 실패했습니다" },
           { status: 500 }
         );
       }
@@ -77,7 +77,7 @@ export async function POST(request: NextRequest) {
       if (updateError) {
         console.error("encryption-key generate: update error:", updateError.message);
         return NextResponse.json(
-          { error: `키 저장 실패: ${updateError.message}` },
+          { error: "키 저장에 실패했습니다" },
           { status: 500 }
         );
       }
@@ -91,7 +91,7 @@ export async function POST(request: NextRequest) {
       const errMsg = err instanceof Error ? err.message : String(err);
       console.error("encryption-key generate: unhandled error:", errMsg);
       return NextResponse.json(
-        { error: `키 생성 중 오류: ${errMsg}` },
+        { error: "키 생성 중 오류가 발생했습니다" },
         { status: 500 }
       );
     }

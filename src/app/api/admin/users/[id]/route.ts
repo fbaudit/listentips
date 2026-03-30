@@ -30,6 +30,7 @@ export async function PATCH(
   // Handle password change separately
   if (body.password) {
     updateData.password_hash = await hashPassword(body.password);
+    updateData.password_changed_at = new Date().toISOString();
   }
 
   if (Object.keys(updateData).length === 0) {

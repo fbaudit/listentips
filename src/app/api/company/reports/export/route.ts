@@ -9,7 +9,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { reportIds } = await request.json();
+  const body = await request.json();
+  const { reportIds, encryptionKey } = body;
   if (!Array.isArray(reportIds) || reportIds.length === 0) {
     return NextResponse.json({ error: "제보를 선택해주세요" }, { status: 400 });
   }
@@ -34,8 +35,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "제보 조회 오류" }, { status: 500 });
   }
 
-  // Decrypt if encryption key provided
-  const encKey = request.headers.get("x-encryption-key") || null;
+  // Decrypt if encryption key provided via request body (not headers for security)
+  const encKey = typeof encryptionKey === "string" ? encryptionKey : null;
   const dataKey = encKey || await getCompanyDataKey(companyId);
 
   const exportData = (reports || []).map((r) => {

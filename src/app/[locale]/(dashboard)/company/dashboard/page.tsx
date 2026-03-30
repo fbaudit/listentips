@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import {
   FileText, Clock, CheckCircle2, AlertTriangle, TrendingUp, TrendingDown,
-  Minus, BarChart3, Brain, Globe, Timer, Loader2,
+  Minus, BarChart3, Brain, Globe, Timer, Loader2, ShieldCheck, ClipboardCheck,
 } from "lucide-react";
 import { Link } from "@/i18n/routing";
 import {
@@ -53,14 +53,18 @@ export default function CompanyDashboardPage() {
   const t = useTranslations("company");
   const [data, setData] = useState<DashboardData | null>(null);
   const [recentReports, setRecentReports] = useState<RecentReport[]>([]);
+  const [securityScore, setSecurityScore] = useState<{ score: number; grade: string; items: { label: string; achieved: boolean; points: number; tip: string }[] } | null>(null);
+  const [compliance, setCompliance] = useState<{ complianceRate: number; totalChecks: number; passCount: number; items: { requirement: string; regulation: string; status: string; detail: string }[] } | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function fetchAll() {
       try {
-        const [dashRes, reportsRes] = await Promise.all([
+        const [dashRes, reportsRes, scoreRes, compRes] = await Promise.all([
           fetch("/api/company/dashboard"),
           fetch("/api/reports?limit=10&summary=false"),
+          fetch("/api/company/security-score").catch(() => null),
+          fetch("/api/company/compliance-checklist").catch(() => null),
         ]);
         if (dashRes.ok) {
           setData(await dashRes.json());
@@ -68,6 +72,12 @@ export default function CompanyDashboardPage() {
         if (reportsRes.ok) {
           const rData = await reportsRes.json();
           setRecentReports(rData.reports || []);
+        }
+        if (scoreRes?.ok) {
+          setSecurityScore(await scoreRes.json());
+        }
+        if (compRes?.ok) {
+          setCompliance(await compRes.json());
         }
       } catch {
         // ignore
@@ -175,6 +185,66 @@ export default function CompanyDashboardPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Security Score & Compliance */}
+      {(securityScore || compliance) && (
+        <div className="grid gap-4 sm:grid-cols-2">
+          {securityScore && (
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">보안 점수</CardTitle>
+                <ShieldCheck className="w-4 h-4 text-emerald-500" />
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-3xl font-bold">{securityScore.score}</span>
+                  <span className="text-sm text-muted-foreground">/ 100</span>
+                  <Badge variant={securityScore.grade === "A" ? "default" : securityScore.grade === "B" ? "secondary" : "destructive"} className="ml-auto">
+                    등급 {securityScore.grade}
+                  </Badge>
+                </div>
+                <div className="mt-3 space-y-1.5">
+                  {securityScore.items.filter((i: { achieved: boolean }) => !i.achieved).slice(0, 3).map((item: { label: string; tip: string }, idx: number) => (
+                    <div key={idx} className="flex items-start gap-2 text-xs">
+                      <span className="text-amber-500 mt-0.5">!</span>
+                      <span className="text-muted-foreground">{item.tip}</span>
+                    </div>
+                  ))}
+                  {securityScore.items.filter((i: { achieved: boolean }) => !i.achieved).length === 0 && (
+                    <p className="text-xs text-emerald-600">모든 보안 항목이 충족되었습니다</p>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {compliance && (
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">컴플라이언스 준수율</CardTitle>
+                <ClipboardCheck className="w-4 h-4 text-blue-500" />
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-3xl font-bold">{compliance.complianceRate}%</span>
+                  <span className="text-sm text-muted-foreground">{compliance.passCount}/{compliance.totalChecks} 항목 충족</span>
+                </div>
+                <div className="mt-3 space-y-1.5">
+                  {compliance.items.filter((i: { status: string }) => i.status === "fail").slice(0, 3).map((item: { requirement: string; regulation: string }, idx: number) => (
+                    <div key={idx} className="flex items-start gap-2 text-xs">
+                      <span className="text-red-500 mt-0.5">✗</span>
+                      <span className="text-muted-foreground">{item.requirement} <span className="text-[10px] opacity-60">({item.regulation})</span></span>
+                    </div>
+                  ))}
+                  {compliance.items.filter((i: { status: string }) => i.status === "fail").length === 0 && (
+                    <p className="text-xs text-emerald-600">모든 규정 요건이 충족되었습니다</p>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      )}
 
       {/* Secondary Metrics */}
       <div className="grid gap-4 sm:grid-cols-3">

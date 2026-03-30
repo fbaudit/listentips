@@ -31,6 +31,7 @@ const PATTERNS: Array<{
   regex: RegExp;
   category: keyof PlaceholderCounters;
   label: string;
+  validate?: (match: string) => boolean;
 }> = [
   // Korean resident registration number (주민등록번호): 123456-1234567
   {
@@ -62,11 +63,26 @@ const PATTERNS: Array<{
     category: "연락처",
     label: "연락처",
   },
-  // Credit card numbers: 1234-5678-9012-3456
+  // Credit card numbers: 1234-5678-9012-3456 (validated with Luhn algorithm)
   {
     regex: /\d{4}[-.\s]?\d{4}[-.\s]?\d{4}[-.\s]?\d{4}/g,
     category: "금융정보",
     label: "금융정보",
+    validate: (match: string) => {
+      const digits = match.replace(/\D/g, "");
+      if (digits.length !== 16) return false;
+      // Luhn algorithm
+      let sum = 0;
+      for (let i = 0; i < 16; i++) {
+        let d = parseInt(digits[i]);
+        if (i % 2 === 0) {
+          d *= 2;
+          if (d > 9) d -= 9;
+        }
+        sum += d;
+      }
+      return sum % 10 === 0;
+    },
   },
   // Bank account numbers: common Korean formats (10-14 digits with dashes)
   {
@@ -107,8 +123,10 @@ function deidentifyText(
     const matches = text.match(pattern.regex);
     if (!matches) continue;
 
-    // Deduplicate matches
-    const unique = [...new Set(matches)];
+    // Deduplicate matches, apply optional validation
+    const unique = [...new Set(matches)].filter(
+      (m) => !pattern.validate || pattern.validate(m)
+    );
     for (const match of unique) {
       if (existingMap.has(match)) {
         // Reuse existing placeholder

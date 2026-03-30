@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="180" height="180" viewBox="0 0 180 180">
+  <rect width="180" height="180" rx="40" fill="#1a1a2e"/>
+  <path d="M90 35c-2 0-4 .5-5.5 1.5C74 43 62 47 50 47c-3 0-5 2-5 5v32c0 25 15 48 40 58 1.5.5 3 .8 5 .8s3.5-.3 5-.8c25-10 40-33 40-58V52c0-3-2-5-5-5-12 0-24-4-34.5-10.5C94 35.5 92 35 90 35z" fill="white" opacity=".9"/>
+  <text x="90" y="108" font-family="Arial,sans-serif" font-size="36" font-weight="bold" fill="#1a1a2e" text-anchor="middle">L</text>
+</svg>

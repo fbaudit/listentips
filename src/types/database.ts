@@ -13,6 +13,9 @@ export type AuthorType = "reporter" | "company_admin" | "super_admin";
 export type AuditAction =
   | "report.create" | "report.view" | "report.update" | "report.delete"
   | "report.status_change" | "report.export"
+  | "report.assign" | "report.acknowledge" | "report.start_investigation"
+  | "report.resolve" | "report.close" | "report.escalate" | "report.set_priority"
+  | "report.classify"
   | "comment.create" | "comment.update" | "comment.delete"
   | "settings.update"
   | "user.login" | "user.logout"

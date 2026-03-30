@@ -3,13 +3,30 @@ import { getCompanyAIClient } from "@/lib/ai/client";
 import { REPORT_VALIDATION_PROMPT } from "@/lib/ai/prompts";
 import { createAdminClient } from "@/lib/supabase/admin";
 
+const MAX_CONTENT_LENGTH = 50_000;
+
 export async function POST(request: NextRequest) {
   try {
+    // Rate limit: 10 requests per minute per IP
+    const { checkRateLimit, getClientIp } = await import("@/lib/utils/rate-limit");
+    const ip = getClientIp(request);
+    const rl = checkRateLimit(`ai:validate:${ip}`, 10, 60_000);
+    if (!rl.allowed) {
+      return NextResponse.json({ error: `요청이 너무 많습니다. ${rl.retryAfterSec}초 후 다시 시도해주세요.` }, { status: 429 });
+    }
+
     const { content, title, companyCode } = await request.json();
 
     if (!content || content.length < 20) {
       return NextResponse.json(
         { error: "내용이 너무 짧습니다 (최소 20자)" },
+        { status: 400 }
+      );
+    }
+
+    if (content.length > MAX_CONTENT_LENGTH) {
+      return NextResponse.json(
+        { error: "내용이 너무 깁니다 (최대 50,000자)" },
         { status: 400 }
       );
     }

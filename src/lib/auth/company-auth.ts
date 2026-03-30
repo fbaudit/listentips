@@ -8,9 +8,18 @@ export const {
   ...authOptions,
   basePath: "/api/auth/company",
   cookies: {
-    sessionToken: { name: "authjs.company-session-token" },
-    callbackUrl: { name: "authjs.company-callback-url" },
-    csrfToken: { name: "authjs.company-csrf-token" },
+    sessionToken: {
+      name: "authjs.company-session-token",
+      options: { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production" },
+    },
+    callbackUrl: {
+      name: "authjs.company-callback-url",
+      options: { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production" },
+    },
+    csrfToken: {
+      name: "authjs.company-csrf-token",
+      options: { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production" },
+    },
   },
   pages: {
     signIn: "/company/login",

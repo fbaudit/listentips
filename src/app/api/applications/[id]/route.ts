@@ -27,7 +27,9 @@ export async function GET(
     return NextResponse.json({ error: "신청을 찾을 수 없습니다" }, { status: 404 });
   }
 
-  return NextResponse.json(application);
+  // Remove sensitive fields before returning
+  const { admin_password_hash, ...safeApplication } = application;
+  return NextResponse.json(safeApplication);
 }
 
 export async function DELETE(

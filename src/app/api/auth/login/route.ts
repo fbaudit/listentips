@@ -231,7 +231,28 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ directLogin: true });
   }
 
-  // 6. Send 2FA verification code
+  // 6. Rate limit 2FA code sending (max 1 per 60 seconds per user)
+  const { data: recentCode } = await supabase
+    .from("verification_codes")
+    .select("created_at")
+    .eq("user_id", user.id)
+    .eq("type", "login_2fa")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .single();
+
+  if (recentCode) {
+    const elapsed = Date.now() - new Date(recentCode.created_at).getTime();
+    if (elapsed < 60_000) {
+      const wait = Math.ceil((60_000 - elapsed) / 1000);
+      return NextResponse.json(
+        { error: `인증번호를 이미 발송했습니다. ${wait}초 후 다시 시도해주세요.` },
+        { status: 429 }
+      );
+    }
+  }
+
+  // Send 2FA verification code
   const sendChannel = channel === "sms" ? "sms" : "email";
   const { success: codeSent, sentVia, error: sendError } = await sendVerificationCodeToUser(
     user.id,

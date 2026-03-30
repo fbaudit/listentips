@@ -35,12 +35,31 @@ function normalizeGeminiMimeType(mimeType: string | null): string {
   return "text/plain";
 }
 
+const MAX_MESSAGE_LENGTH = 5000;
+const MAX_HISTORY_LENGTH = 50;
+
 export async function POST(request: NextRequest) {
   try {
+    // Rate limit: 20 requests per minute per IP
+    const { checkRateLimit, getClientIp } = await import("@/lib/utils/rate-limit");
+    const ip = getClientIp(request);
+    const rl = checkRateLimit(`ai:chatbot:${ip}`, 20, 60_000);
+    if (!rl.allowed) {
+      return NextResponse.json({ error: `요청이 너무 많습니다. ${rl.retryAfterSec}초 후 다시 시도해주세요.` }, { status: 429 });
+    }
+
     const { companyCode, message, history } = await request.json();
 
     if (!companyCode || !message) {
       return NextResponse.json({ error: "필수 파라미터가 누락되었습니다" }, { status: 400 });
+    }
+
+    // Input size validation
+    if (typeof message !== "string" || message.length > MAX_MESSAGE_LENGTH) {
+      return NextResponse.json({ error: "메시지가 너무 깁니다" }, { status: 400 });
+    }
+    if (Array.isArray(history) && history.length > MAX_HISTORY_LENGTH) {
+      return NextResponse.json({ error: "대화 기록이 너무 깁니다" }, { status: 400 });
     }
 
     const supabase = createAdminClient();
@@ -119,7 +138,8 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("Chatbot error:", error);
     const msg = error instanceof Error ? error.message : String(error);
-    return NextResponse.json({ error: `챗봇 오류: ${msg}` }, { status: 500 });
+    console.error("Chatbot error:", msg);
+    return NextResponse.json({ error: "챗봇 처리 중 오류가 발생했습니다" }, { status: 500 });
   }
 }
 

@@ -132,6 +132,24 @@ export async function verifyCode(
 ): Promise<boolean> {
   const supabase = createAdminClient();
 
+  if (markAsUsed) {
+    // Atomic: update used=true WHERE conditions match, returns data only if row existed
+    // This prevents race conditions where parallel requests could verify the same code
+    const { data } = await supabase
+      .from("verification_codes")
+      .update({ used: true })
+      .eq("user_id", userId)
+      .eq("code", code)
+      .eq("type", "login_2fa")
+      .eq("used", false)
+      .gt("expires_at", new Date().toISOString())
+      .select("id")
+      .single();
+
+    return !!data;
+  }
+
+  // Pre-validation only (no consumption)
   const { data } = await supabase
     .from("verification_codes")
     .select("id")
@@ -140,19 +158,8 @@ export async function verifyCode(
     .eq("type", "login_2fa")
     .eq("used", false)
     .gt("expires_at", new Date().toISOString())
-    .order("created_at", { ascending: false })
     .limit(1)
     .single();
 
-  if (!data) return false;
-
-  if (markAsUsed) {
-    // Mark as used so it can't be reused
-    await supabase
-      .from("verification_codes")
-      .update({ used: true })
-      .eq("id", data.id);
-  }
-
-  return true;
+  return !!data;
 }

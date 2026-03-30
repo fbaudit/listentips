@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useTranslations } from "next-intl";
 import { useParams, useRouter } from "next/navigation";
+import { sanitizeHtml } from "@/lib/utils/sanitize";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -640,7 +641,7 @@ export default function ReportDetailPage() {
             ) : (
               <div
                 className="prose prose-sm max-w-none break-words text-sm bg-muted/50 rounded-lg p-4 [&_p]:my-1 [&_p:empty]:min-h-[1em] [&_p:has(br:only-child)]:min-h-[1em]"
-                dangerouslySetInnerHTML={{ __html: report.content }}
+                dangerouslySetInnerHTML={{ __html: sanitizeHtml(report.content || "") }}
               />
             )}
           </div>

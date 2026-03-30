@@ -34,6 +34,7 @@ import { toast } from "sonner";
 import { QRCodeSVG } from "qrcode.react";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import { EncryptionKeyGenerateDialog } from "@/components/shared/encryption-key-dialog";
+import { ThemePreview as ThemePreviewPanel } from "@/components/report-themes/theme-preview";
 
 // ─── Types ────────────────────────────────────────────────────────────
 
@@ -52,6 +53,8 @@ interface CompanySettings {
   website: string;
   description: string;
   channel_name: string;
+  channel_theme: string;
+  channel_card_order: string[];
   welcome_message: string;
   report_guide_message: string;
   primary_color: string;
@@ -191,8 +194,17 @@ export default function CompanySettingsPage() {
   const [encryptionEnabled, setEncryptionEnabled] = useState(false);
   const [encKeyGenDialogOpen, setEncKeyGenDialogOpen] = useState(false);
 
+  // Active tab state (only render active tab to reduce DOM size and re-renders)
+  const [activeTab, setActiveTab] = useState("general");
+
   // Security tab state
   const [newBlockedIp, setNewBlockedIp] = useState("");
+
+  // Webhook state
+  const [webhooks, setWebhooks] = useState<Array<{ id: string; name: string; url: string; provider: string; events: string[]; is_active: boolean }>>([]);
+  const [webhookDialogOpen, setWebhookDialogOpen] = useState(false);
+  const [editingWebhook, setEditingWebhook] = useState<{ id?: string; name: string; url: string; provider: string; events: string[] } | null>(null);
+  const [webhookSaving, setWebhookSaving] = useState(false);
 
   // Notification prefs state
   const [notifDialogOpen, setNotifDialogOpen] = useState(false);
@@ -272,11 +284,21 @@ export default function CompanySettingsPage() {
     } catch { /* ignore */ }
   }, []);
 
+  const loadWebhooks = useCallback(async () => {
+    try {
+      const res = await fetch("/api/company/webhooks");
+      if (res.ok) {
+        const data = await res.json();
+        setWebhooks(data.webhooks || []);
+      }
+    } catch { /* ignore */ }
+  }, []);
+
   useEffect(() => {
-    Promise.all([loadSettings(), loadReportTypes(), loadReportStatuses(), loadStaff(), loadEncryptionStatus(), loadDocuments()]).finally(() =>
+    Promise.all([loadSettings(), loadReportTypes(), loadReportStatuses(), loadStaff(), loadEncryptionStatus(), loadDocuments(), loadWebhooks()]).finally(() =>
       setLoading(false)
     );
-  }, [loadSettings, loadReportTypes, loadReportStatuses, loadStaff, loadEncryptionStatus, loadDocuments]);
+  }, [loadSettings, loadReportTypes, loadReportStatuses, loadStaff, loadEncryptionStatus, loadDocuments, loadWebhooks]);
 
   // ─── Company Settings Handlers ────────────────────────────────────
 
@@ -746,12 +768,13 @@ export default function CompanySettingsPage() {
         <p className="text-muted-foreground">{t("settings.description")}</p>
       </div>
 
-      <Tabs defaultValue="general">
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
           <TabsTrigger value="general">회사정보</TabsTrigger>
           <TabsTrigger value="channel">채널설정</TabsTrigger>
           <TabsTrigger value="staff">담당자정보</TabsTrigger>
           <TabsTrigger value="security">보안</TabsTrigger>
+          <TabsTrigger value="webhooks">웹훅</TabsTrigger>
           <TabsTrigger value="etc">기타</TabsTrigger>
         </TabsList>
 
@@ -961,6 +984,150 @@ export default function CompanySettingsPage() {
 
         {/* ═══════ Tab 2: 채널설정 ═══════ */}
         <TabsContent value="channel" className="mt-6 space-y-6">
+
+          {/* Theme selector with live preview */}
+          {settings && (
+            <Card>
+              <CardHeader>
+                <CardTitle>채널 테마</CardTitle>
+                <CardDescription>제보 채널 페이지의 디자인 테마를 선택합니다. 저장하면 즉시 반영됩니다.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-5">
+                {/* Color picker */}
+                <div className="space-y-2">
+                  <Label htmlFor="primaryColor">브랜드 컬러</Label>
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="color"
+                      id="primaryColor"
+                      value={settings.primary_color || "#1a1a2e"}
+                      onChange={(e) => setSettings((s) => s ? { ...s, primary_color: e.target.value } : s)}
+                      className="w-9 h-9 rounded-lg border cursor-pointer p-0.5"
+                    />
+                    <Input
+                      value={settings.primary_color || "#1a1a2e"}
+                      onChange={(e) => setSettings((s) => s ? { ...s, primary_color: e.target.value } : s)}
+                      placeholder="#1a1a2e"
+                      className="w-28 font-mono text-sm"
+                    />
+                    <span className="text-xs text-muted-foreground hidden sm:inline">아이콘, 버튼, 배너 등에 적용</span>
+                  </div>
+                </div>
+
+                {/* Theme selection + preview side by side */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                  {/* Theme options */}
+                  <div className="space-y-2">
+                    <Label>테마 선택</Label>
+                    <div className="space-y-2">
+                      {[
+                        { value: "minimal", label: "미니멀 클린", desc: "화이트 톤, 넓은 여백의 깔끔한 디자인" },
+                        { value: "warm", label: "소프트 케어", desc: "차분한 블루그레이, 안심감을 주는 디자인" },
+                        { value: "dark-elegant", label: "다크 프로페셔널", desc: "다크 네이비, 격조 있는 전문 디자인" },
+                        { value: "futuristic", label: "시큐어 테크", desc: "다크 + 그린 보안 악센트, 보안 배지" },
+                        { value: "vibrant", label: "트러스트 블루", desc: "딥블루 그라디언트, 전문기관 느낌" },
+                      ].map((theme) => (
+                        <button
+                          key={theme.value}
+                          type="button"
+                          onClick={() => setSettings((s) => s ? { ...s, channel_theme: theme.value } : s)}
+                          className={`relative w-full text-left px-4 py-3 rounded-lg border transition-all ${
+                            settings.channel_theme === theme.value
+                              ? "border-primary bg-primary/5 ring-1 ring-primary/20"
+                              : "border-border hover:border-primary/30 hover:bg-accent/30"
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <span className="font-medium text-sm">{theme.label}</span>
+                              <p className="text-xs text-muted-foreground mt-0.5">{theme.desc}</p>
+                            </div>
+                            {settings.channel_theme === theme.value && (
+                              <div className="w-5 h-5 rounded-full bg-primary flex items-center justify-center shrink-0">
+                                <span className="text-primary-foreground text-xs">✓</span>
+                              </div>
+                            )}
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Live preview */}
+                  <div className="space-y-2">
+                    <Label>미리보기</Label>
+                    <ThemePreviewPanel
+                      theme={(settings.channel_theme || "minimal") as import("@/components/report-themes/types").ChannelTheme}
+                      primaryColor={settings.primary_color || "#1a1a2e"}
+                      channelName={settings.channel_name || "익명 제보 채널"}
+                      logoUrl={settings.logo_url}
+                    />
+                  </div>
+                </div>
+
+                {/* Card order */}
+                <div className="space-y-2 pt-2">
+                  <Label>카드 배치 순서</Label>
+                  <p className="text-xs text-muted-foreground">제보 채널 페이지에 표시되는 카드의 순서를 변경합니다. 위아래 버튼으로 이동할 수 있습니다.</p>
+                  <div className="space-y-1.5 pt-1">
+                    {(settings.channel_card_order || ["submit", "check", "content"]).map((cardId: string, idx: number) => {
+                      const cardLabels: Record<string, string> = {
+                        submit: "📝 제보하기",
+                        check: "🔍 제보 확인하기",
+                        content: "📄 콘텐츠 블록",
+                      };
+                      const order = settings.channel_card_order || ["submit", "check", "content"];
+                      return (
+                        <div key={cardId} className="flex items-center gap-2 rounded-lg border bg-card px-4 py-2.5">
+                          <span className="text-sm font-medium flex-1">{cardLabels[cardId] || cardId}</span>
+                          <div className="flex gap-1">
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 w-7 p-0"
+                              disabled={idx === 0}
+                              onClick={() => {
+                                const newOrder = [...order];
+                                [newOrder[idx - 1], newOrder[idx]] = [newOrder[idx], newOrder[idx - 1]];
+                                setSettings((s) => s ? { ...s, channel_card_order: newOrder } : s);
+                              }}
+                            >
+                              ↑
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 w-7 p-0"
+                              disabled={idx === order.length - 1}
+                              onClick={() => {
+                                const newOrder = [...order];
+                                [newOrder[idx], newOrder[idx + 1]] = [newOrder[idx + 1], newOrder[idx]];
+                                setSettings((s) => s ? { ...s, channel_card_order: newOrder } : s);
+                              }}
+                            >
+                              ↓
+                            </Button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Save theme button */}
+                <div className="flex justify-end pt-2">
+                  <Button onClick={handleSaveSettings} disabled={saving}>
+                    {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                    <Save className="w-4 h-4 mr-2" />
+                    테마 저장
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Channel general settings */}
           {settings && (
             <Card>
@@ -1808,6 +1975,175 @@ export default function CompanySettingsPage() {
               </Button>
             </>
           )}
+        </TabsContent>
+
+        {/* ═══════ Tab: 웹훅 ═══════ */}
+        <TabsContent value="webhooks" className="mt-6 space-y-6">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>웹훅 알림</CardTitle>
+                  <CardDescription>Slack, Teams 등 외부 서비스로 실시간 알림을 전송합니다</CardDescription>
+                </div>
+                <Button size="sm" onClick={() => { setEditingWebhook({ name: "", url: "", provider: "slack", events: ["new_report"] }); setWebhookDialogOpen(true); }}>
+                  <Plus className="w-4 h-4 mr-1" /> 웹훅 추가
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {webhooks.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Bell className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                  <p>등록된 웹훅이 없습니다</p>
+                  <p className="text-xs mt-1">Slack, Teams 등과 연동하여 새 제보 알림을 받으세요</p>
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>이름</TableHead>
+                      <TableHead>플랫폼</TableHead>
+                      <TableHead>이벤트</TableHead>
+                      <TableHead>상태</TableHead>
+                      <TableHead className="w-[100px]">관리</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {webhooks.map((wh) => (
+                      <TableRow key={wh.id}>
+                        <TableCell className="font-medium">{wh.name}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline">
+                            {wh.provider === "slack" ? "Slack" : wh.provider === "teams" ? "Teams" : "Custom"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex flex-wrap gap-1">
+                            {wh.events.map((e) => (
+                              <Badge key={e} variant="secondary" className="text-[10px]">
+                                {e === "new_report" ? "새 제보" : e === "status_change" ? "상태 변경" : e === "new_comment" ? "새 댓글" : e === "sla_warning" ? "SLA 경고" : e}
+                              </Badge>
+                            ))}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={wh.is_active ? "default" : "secondary"}>
+                            {wh.is_active ? "활성" : "비활성"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex gap-1">
+                            <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => {
+                              setEditingWebhook({ id: wh.id, name: wh.name, url: wh.url, provider: wh.provider, events: wh.events });
+                              setWebhookDialogOpen(true);
+                            }}>
+                              <Pencil className="w-3 h-3" />
+                            </Button>
+                            <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-destructive" onClick={async () => {
+                              if (!confirm("이 웹훅을 삭제하시겠습니까?")) return;
+                              const res = await fetch(`/api/company/webhooks/${wh.id}`, { method: "DELETE" });
+                              if (res.ok) { toast.success("삭제되었습니다"); loadWebhooks(); }
+                              else toast.error("삭제 실패");
+                            }}>
+                              <Trash2 className="w-3 h-3" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Webhook Dialog */}
+          <Dialog open={webhookDialogOpen} onOpenChange={setWebhookDialogOpen}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>{editingWebhook?.id ? "웹훅 수정" : "웹훅 추가"}</DialogTitle>
+                <DialogDescription>외부 서비스의 웹훅 URL을 등록합니다</DialogDescription>
+              </DialogHeader>
+              {editingWebhook && (
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>이름</Label>
+                    <Input value={editingWebhook.name} onChange={(e) => setEditingWebhook({ ...editingWebhook, name: e.target.value })} placeholder="예: Slack 알림" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>플랫폼</Label>
+                    <Select value={editingWebhook.provider} onValueChange={(v) => setEditingWebhook({ ...editingWebhook, provider: v })}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="slack">Slack</SelectItem>
+                        <SelectItem value="teams">Microsoft Teams</SelectItem>
+                        <SelectItem value="custom">Custom (HTTP POST)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Webhook URL</Label>
+                    <Input value={editingWebhook.url} onChange={(e) => setEditingWebhook({ ...editingWebhook, url: e.target.value })} placeholder="https://hooks.slack.com/services/..." />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>알림 이벤트</Label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {[
+                        { value: "new_report", label: "새 제보 접수" },
+                        { value: "status_change", label: "상태 변경" },
+                        { value: "new_comment", label: "새 댓글" },
+                        { value: "assigned", label: "담당자 배정" },
+                        { value: "sla_warning", label: "SLA 경고" },
+                      ].map((ev) => (
+                        <label key={ev.value} className="flex items-center gap-2 text-sm">
+                          <Checkbox
+                            checked={editingWebhook.events.includes(ev.value)}
+                            onCheckedChange={(checked) => {
+                              setEditingWebhook({
+                                ...editingWebhook,
+                                events: checked
+                                  ? [...editingWebhook.events, ev.value]
+                                  : editingWebhook.events.filter((e) => e !== ev.value),
+                              });
+                            }}
+                          />
+                          {ev.label}
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setWebhookDialogOpen(false)}>취소</Button>
+                <Button disabled={webhookSaving || !editingWebhook?.name || !editingWebhook?.url} onClick={async () => {
+                  if (!editingWebhook) return;
+                  setWebhookSaving(true);
+                  try {
+                    const method = editingWebhook.id ? "PATCH" : "POST";
+                    const url = editingWebhook.id ? `/api/company/webhooks/${editingWebhook.id}` : "/api/company/webhooks";
+                    const res = await fetch(url, {
+                      method,
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ name: editingWebhook.name, url: editingWebhook.url, provider: editingWebhook.provider, events: editingWebhook.events }),
+                    });
+                    if (res.ok) {
+                      toast.success(editingWebhook.id ? "수정되었습니다" : "추가되었습니다");
+                      setWebhookDialogOpen(false);
+                      loadWebhooks();
+                    } else {
+                      const data = await res.json();
+                      toast.error(data.error || "저장 실패");
+                    }
+                  } catch { toast.error("서버 오류"); } finally { setWebhookSaving(false); }
+                }}>
+                  {webhookSaving ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Save className="w-4 h-4 mr-1" />}
+                  저장
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </TabsContent>
 
         {/* ═══════ Tab 5: 기타 ═══════ */}

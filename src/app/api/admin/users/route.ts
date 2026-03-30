@@ -27,7 +27,11 @@ export async function GET(request: NextRequest) {
     .range(offset, offset + limit - 1);
 
   if (search) {
-    query = query.or(`name.ilike.%${search}%,email.ilike.%${search}%,username.ilike.%${search}%`);
+    // Sanitize search input for PostgREST filter syntax
+    const sanitized = search.replace(/[%_,()."\\]/g, "");
+    if (sanitized) {
+      query = query.or(`name.ilike.%${sanitized}%,email.ilike.%${sanitized}%,username.ilike.%${sanitized}%`);
+    }
   }
   if (role) {
     query = query.eq("role", role);

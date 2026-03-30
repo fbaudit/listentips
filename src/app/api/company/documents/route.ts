@@ -72,7 +72,7 @@ export async function POST(request: NextRequest) {
   if (insertError) {
     console.error("Document insert error:", insertError);
     return NextResponse.json(
-      { error: `문서 저장 오류: ${insertError.message}` },
+      { error: "문서 저장에 실패했습니다" },
       { status: 500 }
     );
   }

@@ -1,8 +1,16 @@
 {
   "name": "Listen - 익명 제보 플랫폼",
   "short_name": "Listen",
+  "description": "기업의 투명성을 높이는 익명 제보 채널",
   "start_url": "/",
   "display": "standalone",
+  "orientation": "portrait-primary",
   "background_color": "#ffffff",
-  "theme_color": "#0a0a0a"
+  "theme_color": "#1a1a2e",
+  "icons": [
+    { "src": "/favicon.ico", "sizes": "48x48", "type": "image/x-icon" },
+    { "src": "/apple-touch-icon.svg", "sizes": "180x180", "type": "image/svg+xml" }
+  ],
+  "categories": ["business", "security"],
+  "lang": "ko"
 }

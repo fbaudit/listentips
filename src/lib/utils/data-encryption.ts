@@ -1,6 +1,7 @@
 import crypto from "crypto";
 
-const ALGORITHM = "aes-256-cbc";
+const ALGORITHM_GCM = "aes-256-gcm";
+const ALGORITHM_CBC = "aes-256-cbc";
 
 /**
  * Generate a random 32-byte data encryption key (hex string)
@@ -17,42 +18,65 @@ export function hashKey(keyHex: string): string {
 }
 
 /**
- * Encrypt plaintext using a company-specific key
- * Returns "iv_hex:encrypted_hex" format string
+ * Encrypt plaintext using AES-256-GCM (authenticated encryption).
+ * Returns "gcm:iv_hex:authTag_hex:encrypted_hex" format string.
  */
 export function encryptWithKey(plaintext: string, keyHex: string): string {
-  const iv = crypto.randomBytes(16);
+  const iv = crypto.randomBytes(12); // 12 bytes for GCM
   const key = Buffer.from(keyHex, "hex");
-  const cipher = crypto.createCipheriv(ALGORITHM, key, iv);
+  const cipher = crypto.createCipheriv(ALGORITHM_GCM, key, iv);
   let encrypted = cipher.update(plaintext, "utf8", "hex");
   encrypted += cipher.final("hex");
-  return `${iv.toString("hex")}:${encrypted}`;
+  const authTag = cipher.getAuthTag().toString("hex");
+  return `gcm:${iv.toString("hex")}:${authTag}:${encrypted}`;
 }
 
 /**
- * Decrypt an "iv_hex:encrypted_hex" format string using a company-specific key
+ * Decrypt with auto-detection of GCM (new) vs CBC (legacy).
+ * GCM format: "gcm:iv_hex:authTag_hex:encrypted_hex"
+ * CBC format: "iv_hex:encrypted_hex" (legacy)
  */
 export function decryptWithKey(encryptedStr: string, keyHex: string): string {
+  const key = Buffer.from(keyHex, "hex");
+
+  // New GCM format
+  if (encryptedStr.startsWith("gcm:")) {
+    const parts = encryptedStr.split(":");
+    if (parts.length !== 4) throw new Error("Invalid GCM encrypted format");
+    const [, ivHex, authTagHex, ciphertext] = parts;
+    const iv = Buffer.from(ivHex, "hex");
+    const decipher = crypto.createDecipheriv(ALGORITHM_GCM, key, iv);
+    decipher.setAuthTag(Buffer.from(authTagHex, "hex"));
+    let decrypted = decipher.update(ciphertext, "hex", "utf8");
+    decrypted += decipher.final("utf8");
+    return decrypted;
+  }
+
+  // Legacy CBC format: "iv_hex:encrypted_hex"
   const colonIdx = encryptedStr.indexOf(":");
   if (colonIdx === -1) throw new Error("Invalid encrypted format");
   const ivHex = encryptedStr.substring(0, colonIdx);
   const encrypted = encryptedStr.substring(colonIdx + 1);
-  const key = Buffer.from(keyHex, "hex");
   const iv = Buffer.from(ivHex, "hex");
-  const decipher = crypto.createDecipheriv(ALGORITHM, key, iv);
+  const decipher = crypto.createDecipheriv(ALGORITHM_CBC, key, iv);
   let decrypted = decipher.update(encrypted, "hex", "utf8");
   decrypted += decipher.final("utf8");
   return decrypted;
 }
 
 /**
- * Check if a string looks like an encrypted value (iv_hex:encrypted_hex format)
+ * Check if a string looks like an encrypted value
+ * GCM format: "gcm:iv_hex:authTag_hex:encrypted_hex"
+ * CBC format: "iv_hex:encrypted_hex" (32 hex char IV)
  */
 export function isEncrypted(value: string): boolean {
-  if (!value || !value.includes(":")) return false;
+  if (!value) return false;
+  // GCM format
+  if (value.startsWith("gcm:")) return true;
+  // Legacy CBC format
+  if (!value.includes(":")) return false;
   const colonIdx = value.indexOf(":");
   const ivPart = value.substring(0, colonIdx);
-  // IV should be exactly 32 hex chars (16 bytes)
   return ivPart.length === 32 && /^[0-9a-f]+$/.test(ivPart);
 }
 

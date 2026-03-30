@@ -75,7 +75,7 @@ export default function AdminAuditLogsPage() {
   const totalPages = Math.ceil(total / limit);
 
   useEffect(() => {
-    fetch("/api/companies?limit=500")
+    fetch("/api/companies?limit=50")
       .then((res) => res.ok ? res.json() : null)
       .then((data) => {
         if (data?.companies) {

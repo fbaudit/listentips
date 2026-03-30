@@ -129,7 +129,7 @@ export default function AdminUsersPage() {
 
   const fetchCompanies = useCallback(async () => {
     try {
-      const res = await fetch("/api/companies?limit=500");
+      const res = await fetch("/api/companies?limit=50");
       if (res.ok) {
         const data = await res.json();
         setCompanies(data.companies || []);

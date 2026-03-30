@@ -26,12 +26,15 @@ export async function POST(request: NextRequest) {
     const rawBody = await request.text();
     const signature = request.headers.get("x-toss-signature");
 
-    // Verify webhook signature if secret is configured
-    if (process.env.TOSS_WEBHOOK_SECRET) {
-      if (!verifyTossSignature(rawBody, signature)) {
-        console.error("Toss webhook signature verification failed");
-        return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
+    // Verify webhook signature (mandatory in production)
+    if (!process.env.TOSS_WEBHOOK_SECRET) {
+      if (process.env.NODE_ENV === "production") {
+        console.error("TOSS_WEBHOOK_SECRET is not configured in production");
+        return NextResponse.json({ error: "Webhook not configured" }, { status: 500 });
       }
+    } else if (!verifyTossSignature(rawBody, signature)) {
+      console.error("Toss webhook signature verification failed");
+      return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
     }
 
     const body = JSON.parse(rawBody);

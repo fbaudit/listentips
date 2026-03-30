@@ -2,6 +2,14 @@ import { GoogleGenAI } from "@google/genai";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { decrypt } from "@/lib/utils/encryption";
 
+const AI_TIMEOUT_MS = 60_000;
+
+function fetchWithTimeout(url: string, options: RequestInit, timeoutMs = AI_TIMEOUT_MS): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  return fetch(url, { ...options, signal: controller.signal }).finally(() => clearTimeout(timer));
+}
+
 export type AIProvider = "gemini" | "openai" | "claude";
 
 export interface AIMessage {
@@ -137,7 +145,7 @@ export class AIClient {
   }
 
   private async openaiChat(messages: AIMessage[]): Promise<AIResponse> {
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+    const response = await fetchWithTimeout("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -172,7 +180,7 @@ export class AIClient {
     const systemMsg = messages.find((m) => m.role === "system");
     const chatMsgs = messages.filter((m) => m.role !== "system");
 
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
+    const response = await fetchWithTimeout("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

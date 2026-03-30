@@ -139,35 +139,27 @@ export default function ApplyPage() {
   const { register, watch, setValue, formState: { errors }, trigger } = form;
 
   useEffect(() => {
-    fetch("/api/public/default-report-types")
-      .then((res) => res.json())
-      .then((data) => setDefaultReportTypes(data.reportTypes || []))
-      .catch(() => {});
+    Promise.all([
+      fetch("/api/public/default-report-types").then((res) => res.json()).catch(() => ({ reportTypes: [] })),
+      fetch("/api/public/default-report-statuses").then((res) => res.json()).catch(() => ({ statuses: [] })),
+      fetch("/api/public/default-content-blocks").then((res) => res.json()).catch(() => ({ blocks: [] })),
+    ]).then(([typesData, statusesData, blocksData]) => {
+      setDefaultReportTypes(typesData.reportTypes || []);
+      setDefaultStatuses(statusesData.statuses || []);
 
-    fetch("/api/public/default-report-statuses")
-      .then((res) => res.json())
-      .then((data) => setDefaultStatuses(data.statuses || []))
-      .catch(() => {});
-
-    fetch("/api/public/default-content-blocks")
-      .then((res) => res.json())
-      .then((data) => {
-        const blocks: DefaultContentBlock[] = data.blocks || [];
-        setAllContentBlocks(blocks);
-        // Select all by default
-        const allIds = new Set(blocks.map((b: DefaultContentBlock) => b.id));
-        setSelectedBlockIds(allIds);
-        // Sync to form
-        const formBlocks = blocks.map((b: DefaultContentBlock) => ({
-          id: b.id,
-          content: b.content,
-          order: b.display_order,
-        }));
-        if (formBlocks.length > 0) {
-          setValue("contentBlocks", formBlocks);
-        }
-      })
-      .catch(() => {});
+      const blocks: DefaultContentBlock[] = blocksData.blocks || [];
+      setAllContentBlocks(blocks);
+      const allIds = new Set(blocks.map((b: DefaultContentBlock) => b.id));
+      setSelectedBlockIds(allIds);
+      const formBlocks = blocks.map((b: DefaultContentBlock) => ({
+        id: b.id,
+        content: b.content,
+        order: b.display_order,
+      }));
+      if (formBlocks.length > 0) {
+        setValue("contentBlocks", formBlocks);
+      }
+    });
   }, [setValue]);
 
   const watchedReportTypes = watch("reportTypes");

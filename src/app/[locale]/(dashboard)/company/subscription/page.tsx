@@ -57,7 +57,7 @@ export default function CompanySubscriptionPage() {
           body: JSON.stringify({ planType, locale }),
         });
         const data = await res.json();
-        if (data.url) {
+        if (data.url && (data.url.startsWith("/") || data.url.startsWith("https://api.tosspayments.com") || data.url.startsWith("https://checkout.stripe.com"))) {
           window.location.href = data.url;
         }
       } catch {

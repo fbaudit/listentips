@@ -6,6 +6,9 @@ import { generateCode } from "@/lib/utils/generate-code";
 import { getCompanyDataKey, encryptWithKey, decryptWithKey, isEncrypted } from "@/lib/utils/data-encryption";
 import { checkSecurity } from "@/lib/utils/security-check";
 import { notifyCompanyAdmins } from "@/lib/utils/notify-company-admins";
+import { addTimelineEvent } from "@/lib/utils/timeline";
+import { sendWebhook } from "@/lib/utils/webhook";
+import { generateIntegrityHash } from "@/lib/utils/integrity";
 import crypto from "crypto";
 
 export async function GET(request: NextRequest) {
@@ -36,7 +39,10 @@ export async function GET(request: NextRequest) {
     .range(offset, offset + limit - 1);
 
   if (search) {
-    query = query.or(`report_number.ilike.%${search}%,title.ilike.%${search}%`);
+    const sanitized = search.replace(/[%_,()."\\]/g, "");
+    if (sanitized) {
+      query = query.or(`report_number.ilike.%${sanitized}%,title.ilike.%${sanitized}%`);
+    }
   }
 
   const { data, error, count } = await query;
@@ -187,18 +193,10 @@ export async function POST(request: NextRequest) {
       .eq("is_default", true)
       .single();
 
-    // Generate unique report number
-    let reportNumber: string;
-    let isUnique = false;
-    do {
-      reportNumber = generateCode(8);
-      const { data: existing } = await supabase
-        .from("reports")
-        .select("id")
-        .eq("report_number", reportNumber)
-        .single();
-      isUnique = !existing;
-    } while (!isUnique);
+    // Generate unique report number with retry on conflict
+    let reportNumber = generateCode(8);
+    const MAX_RETRIES = 5;
+    let retryCount = 0;
 
     // Hash password
     const passwordHash = await hashPassword(password);
@@ -225,31 +223,51 @@ export async function POST(request: NextRequest) {
       encContent = encryptWithKey(content, dataKey);
     }
 
-    // Insert report
-    const { data: report, error: insertError } = await supabase
-      .from("reports")
-      .insert({
-        company_id: companyId,
-        report_type_id: reportTypeId,
-        status_id: defaultStatus?.id || null,
-        report_number: reportNumber,
-        password_hash: passwordHash,
-        title: encTitle,
-        content: encContent,
-        ai_validation_score: aiValidationScore ? parseFloat(aiValidationScore) : null,
-        ai_validation_feedback: (() => {
-          if (!aiValidationFeedback) return null;
-          try { return JSON.parse(aiValidationFeedback); }
-          catch { return null; }
-        })(),
-        reporter_ip_hash: ipHash,
-        reporter_locale: locale,
-        device_type: deviceType,
-      })
-      .select("id, report_number")
-      .single();
+    // Insert report with retry on report_number collision
+    let report: { id: string; report_number: string } | null = null;
+    let insertError: unknown = null;
 
-    if (insertError) {
+    while (retryCount < MAX_RETRIES) {
+      const { data, error } = await supabase
+        .from("reports")
+        .insert({
+          company_id: companyId,
+          report_type_id: reportTypeId,
+          status_id: defaultStatus?.id || null,
+          report_number: reportNumber,
+          password_hash: passwordHash,
+          title: encTitle,
+          content: encContent,
+          ai_validation_score: aiValidationScore ? parseFloat(aiValidationScore) : null,
+          ai_validation_feedback: (() => {
+            if (!aiValidationFeedback) return null;
+            try { return JSON.parse(aiValidationFeedback); }
+            catch { return null; }
+          })(),
+          reporter_ip_hash: ipHash,
+          reporter_locale: locale,
+          device_type: deviceType,
+        })
+        .select("id, report_number")
+        .single();
+
+      if (!error) {
+        report = data;
+        break;
+      }
+
+      // If unique constraint violation on report_number, retry with a new code
+      if (error.code === "23505" && error.message?.includes("report_number")) {
+        retryCount++;
+        reportNumber = generateCode(8);
+        continue;
+      }
+
+      insertError = error;
+      break;
+    }
+
+    if (!report) {
       console.error("Report insert error:", insertError);
       return NextResponse.json({ error: "제보 접수 중 오류가 발생했습니다" }, { status: 500 });
     }
@@ -293,8 +311,17 @@ export async function POST(request: NextRequest) {
       origin,
     }).catch((err) => console.error("Notification error:", err));
 
+    // Integrity hash (위변조 방지) — 컬럼이 없어도 제보 접수에 영향 없음
+    const integrityHash = generateIntegrityHash(title, content, new Date().toISOString());
+    supabase.from("reports").update({ integrity_hash: integrityHash }).eq("id", report.id).then(() => {});
+
+    // Timeline + Webhook
+    addTimelineEvent({ reportId: report.id, eventType: "submitted" }).catch(() => {});
+    sendWebhook(companyId, "new_report", { report_number: report.report_number }).catch(() => {});
+
     return NextResponse.json({
       reportNumber: report.report_number,
+      integrityHash,
       message: "제보가 접수되었습니다",
     });
   } catch (error) {

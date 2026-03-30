@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useParams } from "next/navigation";
 import { useTranslations } from "next-intl";
+import { sanitizeHtml } from "@/lib/utils/sanitize";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -34,6 +35,8 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { EncryptionKeyDialog } from "@/components/shared/encryption-key-dialog";
 import { AIAnalysisCard } from "./_components/ai-analysis-card";
+import { ReportTimeline } from "./_components/report-timeline";
+import { ReportWorkflow } from "./_components/report-workflow";
 
 interface ReportDetail {
   id: string;
@@ -52,6 +55,15 @@ interface ReportDetail {
   attachments: Array<{ id: string; file_name: string; file_size: number; mime_type: string }>;
   device_type: string | null;
   created_at: string;
+  // Workflow fields
+  assigned_to: string | null;
+  assigned_user?: { name: string } | null;
+  acknowledged_at: string | null;
+  investigation_started_at: string | null;
+  resolved_at: string | null;
+  priority: string;
+  ai_urgency: string | null;
+  ai_category: string | null;
 }
 
 interface Comment {
@@ -111,6 +123,10 @@ export default function CompanyReportDetailPage() {
   const [editHistory, setEditHistory] = useState<EditHistoryEntry[]>([]);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
+
+  // Workflow state
+  const [staff, setStaff] = useState<{ id: string; name: string }[]>([]);
+  const [workflowVersion, setWorkflowVersion] = useState(0);
 
   // Comment edit/delete state
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
@@ -186,6 +202,10 @@ export default function CompanyReportDetailPage() {
 
   useEffect(() => {
     fetchReportData();
+    // Load staff for workflow
+    fetch("/api/company/staff").then((r) => r.ok ? r.json() : { staff: [] }).then((d) => {
+      setStaff((d.staff || []).map((s: { id: string; name: string }) => ({ id: s.id, name: s.name })));
+    }).catch(() => {});
   }, [reportId]);
 
   const handleDownload = async (attachmentId: string) => {
@@ -518,7 +538,7 @@ export default function CompanyReportDetailPage() {
             <CardContent className="space-y-4">
               <div
                 className="prose prose-sm max-w-none break-words [&_p]:my-1 [&_p:empty]:min-h-[1em] [&_p:has(br:only-child)]:min-h-[1em]"
-                dangerouslySetInnerHTML={{ __html: report.content }}
+                dangerouslySetInnerHTML={{ __html: sanitizeHtml(report.content || "") }}
               />
 
               {/* 5W1H */}
@@ -581,6 +601,28 @@ export default function CompanyReportDetailPage() {
               )}
             </CardContent>
           </Card>
+
+          {/* Workflow */}
+          {report && (
+            <ReportWorkflow
+              reportId={reportId}
+              currentStatus={{
+                assignedTo: report.assigned_to,
+                assignedName: report.assigned_user?.name,
+                acknowledgedAt: report.acknowledged_at,
+                investigationStartedAt: report.investigation_started_at,
+                resolvedAt: report.resolved_at,
+                priority: report.priority || "medium",
+                aiUrgency: report.ai_urgency,
+                aiCategory: report.ai_category,
+              }}
+              staff={staff}
+              onUpdate={() => { fetchReportData(); setWorkflowVersion((v) => v + 1); }}
+            />
+          )}
+
+          {/* Timeline */}
+          <ReportTimeline reportId={reportId} key={workflowVersion} />
 
           {/* AI Analysis */}
           <AIAnalysisCard reportId={reportId} />
@@ -975,7 +1017,7 @@ export default function CompanyReportDetailPage() {
           </DialogHeader>
           <div
             className="prose prose-sm max-w-none break-words overflow-y-auto max-h-[60vh] [&_p]:my-1 [&_p:empty]:min-h-[1em] [&_p:has(br:only-child)]:min-h-[1em]"
-            dangerouslySetInnerHTML={{ __html: historyDetailContent }}
+            dangerouslySetInnerHTML={{ __html: sanitizeHtml(historyDetailContent || "") }}
           />
         </DialogContent>
       </Dialog>

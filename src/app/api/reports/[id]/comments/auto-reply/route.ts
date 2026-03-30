@@ -92,6 +92,6 @@ export async function POST(
   } catch (err) {
     console.error("Auto-reply error:", err);
     const msg = err instanceof Error ? err.message : "알 수 없는 오류";
-    return NextResponse.json({ error: `AI 답변 생성 중 오류가 발생했습니다: ${msg}` }, { status: 500 });
+    return NextResponse.json({ error: "AI 답변 생성 중 오류가 발생했습니다" }, { status: 500 });
   }
 }

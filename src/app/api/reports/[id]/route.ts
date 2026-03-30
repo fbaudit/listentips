@@ -31,6 +31,9 @@ export async function GET(
       id, report_number, title, content, created_at, updated_at, company_id,
       who_field, what_field, when_field, where_field, why_field, how_field,
       ai_validation_score, view_count, device_type,
+      assigned_to, acknowledged_at, investigation_started_at, resolved_at,
+      resolution_summary, priority, ai_urgency, ai_category, ai_classification,
+      satisfaction_rating, satisfaction_comment, satisfaction_at,
       report_type:report_types(id, type_name, type_name_en),
       status:report_statuses(id, status_name, status_name_en, color_code, is_default),
       attachments:report_attachments(id, file_name, file_path, file_size, mime_type)

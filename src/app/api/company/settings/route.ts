@@ -56,7 +56,7 @@ export async function PATCH(request: NextRequest) {
   const allowedFields = [
     "name", "name_en", "business_number", "representative_name",
     "industry", "employee_count", "address", "phone", "email", "website",
-    "description", "channel_name", "welcome_message", "report_guide_message",
+    "description", "channel_name", "channel_theme", "channel_card_order", "welcome_message", "report_guide_message",
     "submission_success_title", "submission_success_message",
     "primary_color", "use_ai_validation", "use_chatbot", "preferred_locale",
     "content_blocks", "ai_provider",
@@ -117,10 +117,26 @@ export async function PATCH(request: NextRequest) {
 
   updateData.updated_at = new Date().toISOString();
 
-  const { error } = await supabase
+  let { error } = await supabase
     .from("companies")
     .update(updateData)
     .eq("id", session.user.companyId);
+
+  // If a column doesn't exist yet (migration not applied), retry without it
+  if (error?.message?.includes("column") && error?.message?.includes("does not exist")) {
+    const colMatch = error.message.match(/column [\w.]*"?(\w+)"? does not exist/);
+    if (colMatch) {
+      const badCol = colMatch[1];
+      console.warn(`Column "${badCol}" not yet in DB, retrying without it`);
+      delete updateData[badCol];
+      if (Object.keys(updateData).length <= 1) {
+        // Only updated_at left
+        return NextResponse.json({ message: "No changes (pending migration)" });
+      }
+      const retry = await supabase.from("companies").update(updateData).eq("id", session.user.companyId);
+      error = retry.error;
+    }
+  }
 
   if (error) {
     console.error("Settings update error:", error);
